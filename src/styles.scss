@@ -1,0 +1,7 @@
+@use "ag-grid-community/styles" as ag;
+
+/* You can add global styles to this file, and also import other style files */
+@import url("tailwindcss");
+
+/* AG Grid Styles */
+@include ag.grid-styles();

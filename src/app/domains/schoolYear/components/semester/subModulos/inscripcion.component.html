@@ -1,0 +1,197 @@
+<div class="space-y-4">
+  <div class="flex justify-between items-center">
+    <h2 class="text-2xl font-black text-gray-800">Proceso de <span class="text-indigo-600">inscripción</span></h2>
+    
+    <div class="flex gap-2">
+      <!-- Botón Añadir -->
+      <button 
+        (click)="addData()"
+        class="bg-indigo-600 hover:bg-indigo-700 text-white px-4 py-2 rounded-xl font-bold shadow-lg shadow-indigo-200 transition-all active:scale-95 flex items-center gap-2">
+        <i class="bi bi-plus-lg text-lg"></i>
+        Añadir
+      </button>
+
+      <!-- Botón Refrescar -->
+      <button 
+        (click)="refreshData()"
+        class="bg-blue-500 hover:bg-blue-600 text-white px-4 py-2 rounded-xl font-bold shadow-lg shadow-blue-200 transition-all active:scale-95 flex items-center gap-2">
+        <i class="bi bi-arrow-clockwise text-lg"></i>
+        Refrescar
+      </button>
+
+      <!-- Botón Guardar / Actualizar -->
+      <button 
+        (click)="saveChanges()"
+        class="bg-amber-500 hover:bg-amber-600 text-white px-4 py-2 rounded-xl font-bold shadow-lg shadow-amber-200 transition-all active:scale-95 flex items-center gap-2">
+        <i class="bi bi-floppy text-lg"></i>
+        Guardar
+      </button>
+
+      <!-- Botón Eliminar -->
+      <button 
+        (click)="deleteSelected()"
+        class="bg-red-500 hover:bg-red-600 text-white px-4 py-2 rounded-xl font-bold shadow-lg shadow-red-200 transition-all active:scale-95 flex items-center gap-2">
+        <i class="bi bi-trash text-lg"></i>
+        Eliminar
+      </button>
+    </div>
+  </div>
+
+  <div class="ag-theme-quartz shadow-sm rounded-2xl overflow-hidden border border-gray-200" style="height: 75vh; width: 100%;">
+      <ag-grid-angular
+        style="width: 100%; height: 100%;"
+        [columnDefs]="columnDefs()"
+        [rowData]="rowData()"
+        (gridReady)="onGridReady($event)"
+        rowSelection="single"
+        (cellDoubleClicked)="onCellDoubleClicked($event)"
+        (cellValueChanged)="onCellValueChanged($event)">
+      </ag-grid-angular>
+    </div>
+
+  <!-- Modal de Inscripción -->
+  @if (isModalOpen()) {
+    <div class="fixed inset-0 z-50 flex items-center justify-center overflow-x-hidden overflow-y-auto outline-none focus:outline-none">
+      <!-- Backdrop / Fondo oscuro -->
+      <div class="fixed inset-0 bg-black/40 backdrop-blur-sm transition-opacity" (click)="closeModal()"></div>
+      
+      <!-- Contenedor del Modal -->
+      <div class="relative w-full max-w-4xl mx-auto my-6 z-50 animate-in fade-in zoom-in duration-200">
+        <div class="relative flex flex-col w-full bg-white border-0 rounded-3xl shadow-2xl outline-none focus:outline-none">
+          
+          <!-- Cabecera -->
+          <div class="flex items-start justify-between p-6 border-b border-solid border-gray-100 rounded-t">
+            <h3 class="text-2xl font-black text-gray-800">
+              Nueva <span class="text-indigo-600">Inscripción</span>
+            </h3>
+            <button (click)="closeModal()" class="p-1 ml-auto bg-transparent border-0 text-gray-400 hover:text-indigo-600 transition-colors">
+              <i class="bi bi-x-lg text-xl"></i>
+            </button>
+          </div>
+          
+          <!-- Cuerpo -->
+          <div class="relative p-8 flex-auto max-h-[70vh] overflow-y-auto">
+            <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+              
+              <!-- Número de Control -->
+              <div class="flex flex-col gap-1">
+                <label class="text-xs font-black uppercase text-gray-400 ml-1">Número de Control</label>
+                <input type="text" [(ngModel)]="studentForm.controlNumber" placeholder="Ej. 20240001" 
+                  class="bg-gray-50 border border-gray-100 rounded-xl px-4 py-3 focus:bg-white focus:ring-2 focus:ring-indigo-500 outline-none transition-all">
+              </div>
+
+              <!-- Nombre -->
+              <div class="flex flex-col gap-1">
+                <label class="text-xs font-black uppercase text-gray-400 ml-1">Nombre(s)</label>
+                <input type="text" [(ngModel)]="studentForm.firstName" placeholder="Nombre completo" 
+                  class="bg-gray-50 border border-gray-100 rounded-xl px-4 py-3 focus:bg-white focus:ring-2 focus:ring-indigo-500 outline-none transition-all">
+              </div>
+
+              <!-- Apellidos -->
+              <div class="flex flex-col gap-1">
+                <label class="text-xs font-black uppercase text-gray-400 ml-1">Apellidos</label>
+                <input type="text" [(ngModel)]="studentForm.lastName" placeholder="Apellidos" 
+                  class="bg-gray-50 border border-gray-100 rounded-xl px-4 py-3 focus:bg-white focus:ring-2 focus:ring-indigo-500 outline-none transition-all">
+              </div>
+
+              <!-- Email -->
+              <div class="flex flex-col gap-1">
+                <label class="text-xs font-black uppercase text-gray-400 ml-1">Correo Electrónico</label>
+                <input type="email" [(ngModel)]="studentForm.email" placeholder="ejemplo@correo.com" 
+                  class="bg-gray-50 border border-gray-100 rounded-xl px-4 py-3 focus:bg-white focus:ring-2 focus:ring-indigo-500 outline-none transition-all">
+              </div>
+
+              <!-- Teléfono -->
+              <div class="flex flex-col gap-1">
+                <label class="text-xs font-black uppercase text-gray-400 ml-1">Teléfono</label>
+                <input type="tel" [(ngModel)]="studentForm.phone" placeholder="10 dígitos" 
+                  class="bg-gray-50 border border-gray-100 rounded-xl px-4 py-3 focus:bg-white focus:ring-2 focus:ring-indigo-500 outline-none transition-all">
+              </div>
+
+              <!-- Clave de Internet -->
+              <div class="flex flex-col gap-1">
+                <label class="text-xs font-black uppercase text-gray-400 ml-1">Clave de Internet</label>
+                <input type="text" [(ngModel)]="studentForm.internetPassword" placeholder="Contraseña de red" 
+                  class="bg-gray-50 border border-gray-100 rounded-xl px-4 py-3 focus:bg-white focus:ring-2 focus:ring-indigo-500 outline-none transition-all">
+              </div>
+
+              <!-- Selección de Curso -->
+              <div class="flex flex-col gap-1">
+                <label class="text-xs font-black uppercase text-gray-400 ml-1">Curso / Carrera</label>
+                <select [(ngModel)]="studentForm.idCourses" 
+                  class="bg-gray-50 border border-gray-100 rounded-xl px-4 py-3 focus:bg-white focus:ring-2 focus:ring-indigo-500 outline-none transition-all appearance-none">
+                  <option [value]="0" disabled>Seleccione un curso</option>
+                  @for (course of coursesVigentes(); track course.id) {
+                    <option [value]="course.id">{{ course.name }}</option>
+                  }
+                </select>
+              </div>
+
+              <!-- Grado -->
+              <div class="flex flex-col gap-1">
+                <label class="text-xs font-black uppercase text-gray-400 ml-1">Grado</label>
+                <input type="text" [(ngModel)]="studentForm.grade" placeholder="Ej. 1er Semestre" 
+                  class="bg-gray-50 border border-gray-100 rounded-xl px-4 py-3 focus:bg-white focus:ring-2 focus:ring-indigo-500 outline-none transition-all">
+              </div>
+
+              <!-- Grupo -->
+              <div class="flex flex-col gap-1">
+                <label class="text-xs font-black uppercase text-gray-400 ml-1">Grupo</label>
+                <input type="text" [(ngModel)]="studentForm.group" placeholder="Ej. A" 
+                  class="bg-gray-50 border border-gray-100 rounded-xl px-4 py-3 focus:bg-white focus:ring-2 focus:ring-indigo-500 outline-none transition-all">
+              </div>
+
+              <!-- Tipo de Sangre -->
+              <div class="flex flex-col gap-1">
+                <label class="text-xs font-black uppercase text-gray-400 ml-1">Tipo de Sangre</label>
+                <input type="text" [(ngModel)]="studentForm.bloodType" placeholder="Ej. O+" 
+                  class="bg-gray-50 border border-gray-100 rounded-xl px-4 py-3 focus:bg-white focus:ring-2 focus:ring-indigo-500 outline-none transition-all">
+              </div>
+
+              <!-- Contacto Emergencia -->
+              <div class="flex flex-col gap-1">
+                <label class="text-xs font-black uppercase text-gray-400 ml-1">Contacto de Emergencia</label>
+                <input type="text" [(ngModel)]="studentForm.emergencyContact" placeholder="Nombre contacto" 
+                  class="bg-gray-50 border border-gray-100 rounded-xl px-4 py-3 focus:bg-white focus:ring-2 focus:ring-indigo-500 outline-none transition-all">
+              </div>
+
+              <!-- Teléfono Emergencia -->
+              <div class="flex flex-col gap-1">
+                <label class="text-xs font-black uppercase text-gray-400 ml-1">Teléfono Emergencia</label>
+                <input type="tel" [(ngModel)]="studentForm.emergencyPhone" placeholder="Teléfono contacto" 
+                  class="bg-gray-50 border border-gray-100 rounded-xl px-4 py-3 focus:bg-white focus:ring-2 focus:ring-indigo-500 outline-none transition-all">
+              </div>
+
+              <!-- Estado Vigente -->
+              <div class="flex items-center gap-3 pt-4">
+                <input type="checkbox" [(ngModel)]="studentForm.vigente" id="vigente-chk"
+                  class="w-5 h-5 rounded-lg border-gray-300 text-indigo-600 focus:ring-indigo-500 transition-all cursor-pointer">
+                <label for="vigente-chk" class="text-sm font-bold text-gray-700 cursor-pointer">Estado Vigente</label>
+              </div>
+
+              <!-- Dirección -->
+              <div class="flex flex-col gap-1 md:col-span-2 lg:col-span-3">
+                <label class="text-xs font-black uppercase text-gray-400 ml-1">Dirección Completa</label>
+                <textarea [(ngModel)]="studentForm.address" placeholder="Calle, número, colonia..." rows="2"
+                  class="bg-gray-50 border border-gray-100 rounded-xl px-4 py-3 focus:bg-white focus:ring-2 focus:ring-indigo-500 outline-none transition-all resize-none"></textarea>
+              </div>
+
+            </div>
+          </div>
+          
+          <!-- Pie de página / Botones -->
+          <div class="flex items-center justify-end p-6 border-t border-solid border-gray-100 rounded-b gap-3">
+            <button (click)="closeModal()" class="text-gray-500 hover:text-gray-800 font-bold px-4 py-2 transition-all">
+              Cerrar
+            </button>
+            <button 
+              (click)="confirmAddStudent()"
+              class="bg-indigo-600 hover:bg-indigo-700 text-white font-bold px-6 py-2.5 rounded-xl shadow-lg shadow-indigo-200 transition-all active:scale-95">
+              Confirmar
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
+  }
+</div>

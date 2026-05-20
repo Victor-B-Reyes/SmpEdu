@@ -1,0 +1,76 @@
+<div class="space-y-4">
+  <div class="flex justify-between items-center">
+    <h2 class="text-2xl font-black text-gray-800">Listado de <span class="text-indigo-600">Semestres</span></h2>
+    
+    <div class="flex gap-2">
+      <!-- Botón Añadir -->
+      <button 
+        (click)="addData()"
+        class="bg-indigo-600 hover:bg-indigo-700 text-white px-4 py-2 rounded-xl font-bold shadow-lg shadow-indigo-200 transition-all active:scale-95 flex items-center gap-2">
+        <i class="bi bi-plus-lg text-lg"></i>
+        Añadir
+      </button>
+
+      <!-- Botón Refrescar -->
+      <button 
+        (click)="refreshData()"
+        class="bg-blue-500 hover:bg-blue-600 text-white px-4 py-2 rounded-xl font-bold shadow-lg shadow-blue-200 transition-all active:scale-95 flex items-center gap-2">
+        <i class="bi bi-arrow-clockwise text-lg"></i>
+        Refrescar
+      </button>
+
+      <!-- Botón Guardar / Actualizar -->
+      <button 
+        (click)="saveChanges()"
+        class="bg-amber-500 hover:bg-amber-600 text-white px-4 py-2 rounded-xl font-bold shadow-lg shadow-amber-200 transition-all active:scale-95 flex items-center gap-2">
+        <i class="bi bi-floppy text-lg"></i>
+        Guardar
+      </button>
+
+      <!-- Botón Eliminar -->
+      <button 
+        (click)="deleteSelected()"
+        class="bg-red-500 hover:bg-red-600 text-white px-4 py-2 rounded-xl font-bold shadow-lg shadow-red-200 transition-all active:scale-95 flex items-center gap-2">
+        <i class="bi bi-trash text-lg"></i>
+        Eliminar
+      </button>
+    </div>
+  </div>
+
+  <div class="ag-theme-quartz shadow-sm rounded-2xl overflow-hidden border border-gray-200" style="height: 75vh; width: 100%;">
+      <ag-grid-angular
+        style="width: 100%; height: 100%;"
+        [columnDefs]="columnDefs()"
+        [rowData]="rowData()"
+        (gridReady)="onGridReady($event)"
+        rowSelection="single"
+        (cellDoubleClicked)="onCellDoubleClicked($event)"
+        (cellValueChanged)="onCellValueChanged($event)">
+      </ag-grid-angular>
+    </div>
+
+  @if (activeSubmodule()) {
+    <div id="semester-submodule-container" class="rounded-2xl border border-gray-200 bg-white p-4 shadow-sm">
+      <div class="mb-4 flex items-center justify-between">
+        <h3 class="text-lg font-black text-gray-800">
+          {{ activeSubmodule() === 'inscripcion' ? 'Inscripción' : 'Acreditación' }}
+        </h3>
+
+        <button
+          type="button"
+          (click)="closeSubmodule()"
+          class="rounded-xl bg-slate-100 px-4 py-2 text-sm font-bold text-slate-700 transition-colors hover:bg-slate-200">
+          Cerrar
+        </button>
+      </div>
+
+      @if (activeSubmodule() === 'inscripcion') {
+        <app-inscripcion />
+      }
+
+      @if (activeSubmodule() === 'rescripcion') {
+        <app-rescripcion />
+      }
+    </div>
+  }
+</div>

@@ -1,0 +1,55 @@
+import { inject, Injectable } from '@angular/core';
+
+import { environment } from '../environments/environment';
+import { TrackingService } from './tracking.service';
+
+import { HttpClient } from '@angular/common/http';
+
+@Injectable({
+  providedIn: 'root',
+})
+export class RootService {
+  private http = inject(HttpClient);
+  private trackingService = inject(TrackingService);
+
+  getRoot() {
+    return this.http.get(`${environment.urlSmp}/Root`, { headers: this.trackingService.getHeaders() });
+  }
+
+  getRootbyId(id:number) {
+    return this.http.get(`${environment.urlSmp}/Root/${id}`, { headers: this.trackingService.getHeaders() });
+  }
+
+  addRoot(data: any) {
+    return this.http.post(`${environment.urlSmp}/Root`, data, { headers: this.trackingService.getHeaders() });
+  }
+
+  updateRoot(id: number, data: any) {
+    return this.http.put(`${environment.urlSmp}/Root/${id}`, data, { headers: this.trackingService.getHeaders() });
+  }
+
+  deleteRoot(id:number) {
+    return this.http.delete(`${environment.urlSmp}/Root/${id}`, { headers: this.trackingService.getHeaders() });
+  }
+
+  getRoot2fields() {
+    return this.http.get(`${environment.urlSmp}/Root/2fields`, { headers: this.trackingService.getHeaders()  });
+  }
+
+  get2Root(idUser : number) {
+    return this.http.get(`${environment.urlSmp}/SmpandSecurity/root?idUser=${idUser}`, { headers: this.trackingService.getHeaders() });
+  }
+
+  getCorporativos() {
+    return this.http.get(`${environment.urlSmp}/GruposCorporativos`, { headers: this.trackingService.getHeaders() });
+  }
+
+  addCorporativo(data: any) {
+    return this.http.post(`${environment.urlSmp}/GruposCorporativos`, data, { headers: this.trackingService.getHeaders() });
+  }
+
+  updateCorporativo(id: number, data: any) {
+    return this.http.put(`${environment.urlSmp}/GruposCorporativos/${id}`, data, { headers: this.trackingService.getHeaders() });
+  }
+
+}
