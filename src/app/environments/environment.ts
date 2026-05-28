@@ -46,8 +46,8 @@ export const environment = {
   // urlWarehouse  : 'https://bi2.centralus.cloudapp.azure.com/warehouse/api',
 
 
-  //urlSecurity: 'https://endpoints.biapp.com.mx/api', // 5003
-  urlSecurity     : 'http://localhost:5260/api',
+  urlSecurity: 'https://endpoints.biapp.com.mx/api', // 5003
+  //urlSecurity     : 'http://localhost:5260/api',
 
   urlSmp: 'https://endpoints.biapp.com.mx/smp/api', // 5004
   //urlSmp          : 'http://localhost:5183/api',
@@ -63,8 +63,8 @@ export const environment = {
   urlNotifications: 'https://endpoints.biapp.com.mx/notifications/api', // 5011 -- NotificationsTelegram
   //urlNotifications: 'http://localhost:5011/api',
 
-  //urlEduControl: 'https://endpoints.biapp.com.mx/smp/api', // 5004
-  urlEduControl          : 'http://localhost:5063/api',
+  urlEduControl: 'https://endpoints.biapp.com.mx/edu/api', // 5004
+  //urlEduControl          : 'http://localhost:5063/api',
 
   urlChatBot: 'https://endpoints.biapp.com.mx/telegram/api',
   //urlChatBot: 'http://localhost:5232/api',
