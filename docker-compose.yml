@@ -1,11 +1,11 @@
-name: smp-eduControl-frontend
+name: smp-educontrol-frontend
 
 services:
-  smp-eduControl:
+  smp-educontrol:
     build:
       context: .
       dockerfile: Dockerfile
-    container_name: smp-eduControl
+    container_name: smp-educontrol
     ports:
       - "5014:80"
     environment:
