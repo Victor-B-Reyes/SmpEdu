@@ -2,40 +2,42 @@
   <div class="flex justify-between items-center">
     <h2 class="text-2xl font-black text-gray-800">Listado de <span class="text-indigo-600">Alumnos</span></h2>
     <div class="flex gap-2">
-      <!-- Botón Añadir -->
-      <button 
+      <button
         (click)="addStudent()"
         class="bg-indigo-600 hover:bg-indigo-700 text-white px-4 py-2 rounded-xl font-bold shadow-lg shadow-indigo-200 transition-all active:scale-95 flex items-center gap-2">
         <i class="bi bi-plus-lg text-lg"></i>
-        Añadir
+        Anadir
       </button>
 
-      <!-- Botón Refrescar -->
-      <button 
+      <!--<button
+        (click)="openSelectedDetail()"
+        class="bg-sky-600 hover:bg-sky-700 text-white px-4 py-2 rounded-xl font-bold shadow-lg shadow-sky-200 transition-all active:scale-95 flex items-center gap-2">
+        <i class="bi bi-layout-text-window-reverse text-lg"></i>
+        Detalle
+      </button>-->
+
+      <button
         (click)="refreshData()"
         class="bg-blue-500 hover:bg-blue-600 text-white px-4 py-2 rounded-xl font-bold shadow-lg shadow-blue-200 transition-all active:scale-95 flex items-center gap-2">
         <i class="bi bi-arrow-clockwise text-lg"></i>
         Refrescar
       </button>
 
-      <!-- Botón Guardar / Actualizar -->
-      <button 
+      <button
         (click)="saveChanges()"
         class="bg-amber-500 hover:bg-amber-600 text-white px-4 py-2 rounded-xl font-bold shadow-lg shadow-amber-200 transition-all active:scale-95 flex items-center gap-2">
         <i class="bi bi-floppy text-lg"></i>
         Guardar
       </button>
 
-      <!-- Botón Eliminar -->
-      <button 
+      <button
         (click)="deleteSelected()"
         class="bg-red-500 hover:bg-red-600 text-white px-4 py-2 rounded-xl font-bold shadow-lg shadow-red-200 transition-all active:scale-95 flex items-center gap-2">
         <i class="bi bi-trash text-lg"></i>
         Eliminar
       </button>
 
-      <!-- Botón Imprimir -->
-      <button 
+      <button
         (click)="openPrintModal()"
         class="bg-emerald-600 hover:bg-emerald-700 text-white px-4 py-2 rounded-xl font-bold shadow-lg shadow-emerald-200 transition-all active:scale-95 flex items-center gap-2">
         <i class="bi bi-printer text-lg"></i>
@@ -45,75 +47,513 @@
   </div>
 
   <div class="ag-theme-quartz shadow-sm rounded-2xl overflow-hidden border border-gray-200" style="height: 85vh; width: 100%;">
-      <ag-grid-angular
-        style="width: 100%; height: 100%;"
-        [columnDefs]="columnDefs()"
-        [rowData]="rowData()"
-        (gridReady)="onGridReady($event)"
-        rowSelection="single"
-        (cellValueChanged)="onCellValueChanged($event)"
-        (cellDoubleClicked)="onCellDoubleClicked($event)">
-      </ag-grid-angular>
-    </div>
+    <ag-grid-angular
+      style="width: 100%; height: 100%;"
+      [columnDefs]="columnDefs()"
+      [rowData]="rowData()"
+      (gridReady)="onGridReady($event)"
+      rowSelection="single"
+      (cellValueChanged)="onCellValueChanged($event)"
+      (cellDoubleClicked)="onCellDoubleClicked($event)">
+    </ag-grid-angular>
+  </div>
 
-    <!-- Print Modal -->
-    @if (isPrintModalOpen()) {
-      <div class="fixed inset-0 bg-gray-600 bg-opacity-50 overflow-y-auto h-full w-full z-50 flex justify-center items-center">
-        <div class="relative bg-white p-8 rounded-lg shadow-xl w-11/12 md:w-1/2 lg:w-1/3">
-          <h3 class="text-xl font-bold mb-4">Opciones de Impresión</h3>
-          <p class="mb-6 text-gray-700">Aquí podrás añadir filtros para seleccionar qué datos deseas imprimir.</p>
+  @if (isDetailModalOpen() && detailStudent) {
+    <div class="fixed inset-0 z-50 flex items-center justify-center overflow-x-hidden overflow-y-auto outline-none focus:outline-none">
+      <div class="fixed inset-0 bg-black/40 backdrop-blur-sm transition-opacity" (click)="closeDetailModal()"></div>
 
-          <div class="space-y-4 mb-6">
-            <!-- Filtro por Grado -->
+      <div class="relative w-full max-w-5xl mx-auto my-6 z-50 animate-in fade-in zoom-in duration-200">
+        <div class="relative flex flex-col w-full bg-white border-0 rounded-3xl shadow-2xl outline-none focus:outline-none">
+          <div class="flex items-start justify-between p-6 border-b border-solid border-gray-100 rounded-t">
+            <h3 class="text-2xl font-black text-gray-800">
+              Detalle de <span class="text-indigo-600">Alumno</span>
+            </h3>
+            <button (click)="closeDetailModal()" class="p-1 ml-auto bg-transparent border-0 text-gray-400 hover:text-indigo-600 transition-colors">
+              <i class="bi bi-x-lg text-xl"></i>
+            </button>
+          </div>
+
+          <div class="relative p-8 flex-auto max-h-[70vh] overflow-y-auto space-y-4">
             <div>
-              <label class="block text-sm font-medium text-gray-700">Grado</label>
-              <input 
-                type="text" 
-                [ngModel]="printFilterGrade()" 
-                (ngModelChange)="printFilterGrade.set($event)"
-                placeholder="Ej. 1"
-                class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm p-2 border border-gray-200">
+              <h4 class="text-sm font-black text-indigo-600 uppercase tracking-wider mb-4 border-b pb-2">Informacion Personal</h4>
+              <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                <div class="flex flex-col gap-1">
+                  <label class="text-xs font-black uppercase text-gray-400 ml-1">Numero de Control</label>
+                  <input type="text" [(ngModel)]="detailStudent.controlNumber" class="bg-gray-50 border border-gray-100 rounded-xl px-4 py-3 focus:bg-white focus:ring-2 focus:ring-indigo-500 outline-none transition-all">
+                </div>
+
+                <div class="flex flex-col gap-1">
+                  <label class="text-xs font-black uppercase text-gray-400 ml-1">Nombre(s)</label>
+                  <input type="text" [(ngModel)]="detailStudent.firstName" class="bg-gray-50 border border-gray-100 rounded-xl px-4 py-3 focus:bg-white focus:ring-2 focus:ring-indigo-500 outline-none transition-all">
+                </div>
+
+                <div class="flex flex-col gap-1">
+                  <label class="text-xs font-black uppercase text-gray-400 ml-1">Apellido Paterno</label>
+                  <input type="text" [(ngModel)]="detailStudent.lastNameFather" class="bg-gray-50 border border-gray-100 rounded-xl px-4 py-3 focus:bg-white focus:ring-2 focus:ring-indigo-500 outline-none transition-all">
+                </div>
+
+                <div class="flex flex-col gap-1">
+                  <label class="text-xs font-black uppercase text-gray-400 ml-1">Apellido Materno</label>
+                  <input type="text" [(ngModel)]="detailStudent.lastNameMother" class="bg-gray-50 border border-gray-100 rounded-xl px-4 py-3 focus:bg-white focus:ring-2 focus:ring-indigo-500 outline-none transition-all">
+                </div>
+
+                <div class="flex flex-col gap-1">
+                  <label class="text-xs font-black uppercase text-gray-400 ml-1">CURP</label>
+                  <input type="text" [(ngModel)]="detailStudent.curp" class="bg-gray-50 border border-gray-100 rounded-xl px-4 py-3 uppercase focus:bg-white focus:ring-2 focus:ring-indigo-500 outline-none transition-all">
+                </div>
+
+                <div class="flex flex-col gap-1">
+                  <label class="text-xs font-black uppercase text-gray-400 ml-1">Nacimiento</label>
+                  <input type="date" [ngModel]="getDateInputValue(detailStudent.nacimiento)" (ngModelChange)="setDetailNacimiento($event)" class="bg-gray-50 border border-gray-100 rounded-xl px-4 py-3 focus:bg-white focus:ring-2 focus:ring-indigo-500 outline-none transition-all">
+                </div>
+
+                <div class="flex flex-col gap-1">
+                  <label class="text-xs font-black uppercase text-gray-400 ml-1">Correo</label>
+                  <input type="email" [(ngModel)]="detailStudent.email" class="bg-gray-50 border border-gray-100 rounded-xl px-4 py-3 focus:bg-white focus:ring-2 focus:ring-indigo-500 outline-none transition-all">
+                </div>
+
+                <div class="flex flex-col gap-1">
+                  <label class="text-xs font-black uppercase text-gray-400 ml-1">Telefono</label>
+                  <input type="tel" [(ngModel)]="detailStudent.phone" class="bg-gray-50 border border-gray-100 rounded-xl px-4 py-3 focus:bg-white focus:ring-2 focus:ring-indigo-500 outline-none transition-all">
+                </div>
+              </div>
             </div>
 
-            <!-- Filtro por Grupo -->
-            <div>
-              <label class="block text-sm font-medium text-gray-700">Grupo</label>
-              <input 
-                type="text" 
-                [ngModel]="printFilterGroup()" 
-                (ngModelChange)="printFilterGroup.set($event)"
-                placeholder="Ej. A"
-                class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm p-2 border border-gray-200">
+            <div class="bg-gray-50 rounded-2xl border border-gray-100 overflow-hidden transition-all">
+              <button (click)="toggleDetailSection('academic')" class="w-full flex items-center justify-between p-4 hover:bg-gray-100 transition-colors">
+                <span class="text-sm font-black text-gray-700 uppercase"><i class="bi bi-mortarboard-fill mr-2 text-indigo-500"></i> Informacion Academica</span>
+                <i class="bi" [class.bi-chevron-down]="!detailSections().academic" [class.bi-chevron-up]="detailSections().academic"></i>
+              </button>
+
+              @if (detailSections().academic) {
+                <div class="p-4 grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 border-t border-gray-100">
+                  <div class="flex flex-col gap-1">
+                    <label class="text-xs font-black uppercase text-gray-400 ml-1">Curso / Carrera</label>
+                    <select [(ngModel)]="detailStudent.idCourses" class="bg-gray-50 border border-gray-100 rounded-xl px-4 py-3 focus:bg-white focus:ring-2 focus:ring-indigo-500 outline-none transition-all">
+                      <option [ngValue]="0">Seleccione un curso</option>
+                      @for (course of coursesVigentes(); track course.id) {
+                        <option [ngValue]="course.id">{{ course.name }}</option>
+                      }
+                    </select>
+                  </div>
+
+                  <div class="flex flex-col gap-1">
+                    <label class="text-xs font-black uppercase text-gray-400 ml-1">Grado</label>
+                    <input type="text" [(ngModel)]="detailStudent.grade" class="bg-gray-50 border border-gray-100 rounded-xl px-4 py-3 focus:bg-white focus:ring-2 focus:ring-indigo-500 outline-none transition-all">
+                  </div>
+
+                  <div class="flex flex-col gap-1">
+                    <label class="text-xs font-black uppercase text-gray-400 ml-1">Grupo</label>
+                    <input type="text" [(ngModel)]="detailStudent.group" class="bg-gray-50 border border-gray-100 rounded-xl px-4 py-3 focus:bg-white focus:ring-2 focus:ring-indigo-500 outline-none transition-all">
+                  </div>
+
+                  <div class="flex flex-col gap-1">
+                    <label class="text-xs font-black uppercase text-gray-400 ml-1">Clave de Internet</label>
+                    <input type="text" [(ngModel)]="detailStudent.internetPassword" class="bg-gray-50 border border-gray-100 rounded-xl px-4 py-3 focus:bg-white focus:ring-2 focus:ring-indigo-500 outline-none transition-all">
+                  </div>
+
+                  <div class="flex items-center gap-3 pt-7">
+                    <input type="checkbox" [(ngModel)]="detailStudent.vigente" id="student-vigente-chk" class="w-5 h-5 rounded-lg border-gray-300 text-indigo-600 focus:ring-indigo-500 transition-all cursor-pointer">
+                    <label for="student-vigente-chk" class="text-sm font-bold text-gray-700 cursor-pointer">Estado Vigente</label>
+                  </div>
+                </div>
+              }
             </div>
 
-            <!-- Filtro por Carrera / Programa -->
-            <div>
-              <label class="block text-sm font-medium text-gray-700">Carrera / Programa</label>
-              <select 
-                [ngModel]="printFilterCourse()" 
-                (ngModelChange)="printFilterCourse.set($event)"
-                class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm p-2 border border-gray-200">
-                <option [value]="0">Todas las carreras</option>
-                @for (course of coursesVigentes(); track course.id) {
-                  <option [value]="course.id">{{ course.name }}</option>
-                }
-              </select>
+            <div class="bg-gray-50 rounded-2xl border border-gray-100 overflow-hidden transition-all">
+              <button (click)="toggleDetailSection('medical')" class="w-full flex items-center justify-between p-4 hover:bg-gray-100 transition-colors">
+                <span class="text-sm font-black text-gray-700 uppercase"><i class="bi bi-heart-pulse-fill mr-2 text-indigo-500"></i> Informacion Medica</span>
+                <i class="bi" [class.bi-chevron-down]="!detailSections().medical" [class.bi-chevron-up]="detailSections().medical"></i>
+              </button>
+
+              @if (detailSections().medical) {
+                <div class="p-4 grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 border-t border-gray-100">
+                  <div class="flex flex-col gap-1">
+                    <label class="text-xs font-black uppercase text-gray-400 ml-1">Tipo de Sangre</label>
+                    <input type="text" [(ngModel)]="detailStudent.bloodType" class="bg-gray-50 border border-gray-100 rounded-xl px-4 py-3 uppercase focus:bg-white focus:ring-2 focus:ring-indigo-500 outline-none transition-all">
+                  </div>
+
+                  <div class="flex flex-col gap-1">
+                    <label class="text-xs font-black uppercase text-gray-400 ml-1">Estatura</label>
+                    <input type="text" [(ngModel)]="detailStudent.estatura" class="bg-gray-50 border border-gray-100 rounded-xl px-4 py-3 focus:bg-white focus:ring-2 focus:ring-indigo-500 outline-none transition-all">
+                  </div>
+
+                  <div class="flex flex-col gap-1">
+                    <label class="text-xs font-black uppercase text-gray-400 ml-1">Peso</label>
+                    <input type="text" [(ngModel)]="detailStudent.peso" class="bg-gray-50 border border-gray-100 rounded-xl px-4 py-3 focus:bg-white focus:ring-2 focus:ring-indigo-500 outline-none transition-all">
+                  </div>
+
+                  <div class="flex flex-col gap-1">
+                    <label class="text-xs font-black uppercase text-gray-400 ml-1">Alergia</label>
+                    <input type="text" [(ngModel)]="detailStudent.alergia" class="bg-gray-50 border border-gray-100 rounded-xl px-4 py-3 focus:bg-white focus:ring-2 focus:ring-indigo-500 outline-none transition-all">
+                  </div>
+
+                  <div class="flex flex-col gap-1">
+                    <label class="text-xs font-black uppercase text-gray-400 ml-1">Efermedad</label>
+                    <input type="text" [(ngModel)]="detailStudent.efermedad" class="bg-gray-50 border border-gray-100 rounded-xl px-4 py-3 focus:bg-white focus:ring-2 focus:ring-indigo-500 outline-none transition-all">
+                  </div>
+
+                  <div class="flex flex-col gap-1">
+                    <label class="text-xs font-black uppercase text-gray-400 ml-1">Clinica</label>
+                    <input type="text" [(ngModel)]="detailStudent.clinica" class="bg-gray-50 border border-gray-100 rounded-xl px-4 py-3 focus:bg-white focus:ring-2 focus:ring-indigo-500 outline-none transition-all">
+                  </div>
+
+                  <div class="flex flex-col gap-1">
+                    <label class="text-xs font-black uppercase text-gray-400 ml-1">ISSSTE</label>
+                    <input type="text" [(ngModel)]="detailStudent.issste" class="bg-gray-50 border border-gray-100 rounded-xl px-4 py-3 focus:bg-white focus:ring-2 focus:ring-indigo-500 outline-none transition-all">
+                  </div>
+
+                  <div class="flex flex-col gap-1">
+                    <label class="text-xs font-black uppercase text-gray-400 ml-1">IMSS</label>
+                    <input type="text" [(ngModel)]="detailStudent.imss" class="bg-gray-50 border border-gray-100 rounded-xl px-4 py-3 focus:bg-white focus:ring-2 focus:ring-indigo-500 outline-none transition-all">
+                  </div>
+                </div>
+              }
+            </div>
+
+            <div class="bg-gray-50 rounded-2xl border border-gray-100 overflow-hidden transition-all">
+              <button (click)="toggleDetailSection('origin')" class="w-full flex items-center justify-between p-4 hover:bg-gray-100 transition-colors">
+                <span class="text-sm font-black text-gray-700 uppercase"><i class="bi bi-geo-alt-fill mr-2 text-indigo-500"></i> Procedencia</span>
+                <i class="bi" [class.bi-chevron-down]="!detailSections().origin" [class.bi-chevron-up]="detailSections().origin"></i>
+              </button>
+
+              @if (detailSections().origin) {
+                <div class="p-4 grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 border-t border-gray-100">
+                  <div class="flex flex-col gap-1 md:col-span-2">
+                    <label class="text-xs font-black uppercase text-gray-400 ml-1">Nombre de Procedencia</label>
+                    <input type="text" [(ngModel)]="detailStudent.nameProcedencia" class="bg-gray-50 border border-gray-100 rounded-xl px-4 py-3 focus:bg-white focus:ring-2 focus:ring-indigo-500 outline-none transition-all">
+                  </div>
+
+                  <div class="flex flex-col gap-1">
+                    <label class="text-xs font-black uppercase text-gray-400 ml-1">Tipo de Procedencia</label>
+                    <input type="text" [(ngModel)]="detailStudent.typoProcedencia" class="bg-gray-50 border border-gray-100 rounded-xl px-4 py-3 focus:bg-white focus:ring-2 focus:ring-indigo-500 outline-none transition-all">
+                  </div>
+
+                  <div class="flex flex-col gap-1">
+                    <label class="text-xs font-black uppercase text-gray-400 ml-1">Estado de Procedencia</label>
+                    <input type="number" [(ngModel)]="detailStudent.estadoProcedencia" class="bg-gray-50 border border-gray-100 rounded-xl px-4 py-3 focus:bg-white focus:ring-2 focus:ring-indigo-500 outline-none transition-all">
+                  </div>
+                </div>
+              }
+            </div>
+
+            <div class="bg-gray-50 rounded-2xl border border-gray-100 overflow-hidden transition-all">
+              <button (click)="toggleDetailSection('location')" class="w-full flex items-center justify-between p-4 hover:bg-gray-100 transition-colors">
+                <span class="text-sm font-black text-gray-700 uppercase"><i class="bi bi-house-door-fill mr-2 text-indigo-500"></i> Domicilio</span>
+                <i class="bi" [class.bi-chevron-down]="!detailSections().location" [class.bi-chevron-up]="detailSections().location"></i>
+              </button>
+
+              @if (detailSections().location) {
+                <div class="p-4 grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 border-t border-gray-100">
+                  <div class="flex flex-col gap-1 md:col-span-3">
+                    <label class="text-xs font-black uppercase text-gray-400 ml-1">Direccion</label>
+                    <textarea [(ngModel)]="detailStudent.address" rows="2" class="bg-gray-50 border border-gray-100 rounded-xl px-4 py-3 focus:bg-white focus:ring-2 focus:ring-indigo-500 outline-none transition-all resize-none"></textarea>
+                  </div>
+
+                  <div class="flex flex-col gap-1">
+                    <label class="text-xs font-black uppercase text-gray-400 ml-1">Numero</label>
+                    <input type="text" [(ngModel)]="detailStudent.numAddress" class="bg-gray-50 border border-gray-100 rounded-xl px-4 py-3 focus:bg-white focus:ring-2 focus:ring-indigo-500 outline-none transition-all">
+                  </div>
+
+                  <div class="flex flex-col gap-1">
+                    <label class="text-xs font-black uppercase text-gray-400 ml-1">Colonia</label>
+                    <input type="text" [(ngModel)]="detailStudent.colonia" class="bg-gray-50 border border-gray-100 rounded-xl px-4 py-3 focus:bg-white focus:ring-2 focus:ring-indigo-500 outline-none transition-all">
+                  </div>
+
+                  <div class="flex flex-col gap-1">
+                    <label class="text-xs font-black uppercase text-gray-400 ml-1">CP</label>
+                    <input type="number" [(ngModel)]="detailStudent.cp" class="bg-gray-50 border border-gray-100 rounded-xl px-4 py-3 focus:bg-white focus:ring-2 focus:ring-indigo-500 outline-none transition-all">
+                  </div>
+
+                  <div class="flex flex-col gap-1">
+                    <label class="text-xs font-black uppercase text-gray-400 ml-1">Ciudad</label>
+                    <input type="number" [(ngModel)]="detailStudent.ciudad" class="bg-gray-50 border border-gray-100 rounded-xl px-4 py-3 focus:bg-white focus:ring-2 focus:ring-indigo-500 outline-none transition-all">
+                  </div>
+                </div>
+              }
+            </div>
+
+            <div class="bg-gray-50 rounded-2xl border border-gray-100 overflow-hidden transition-all">
+              <button (click)="toggleDetailSection('family')" class="w-full flex items-center justify-between p-4 hover:bg-gray-100 transition-colors">
+                <span class="text-sm font-black text-gray-700 uppercase"><i class="bi bi-people-fill mr-2 text-indigo-500"></i> Padre, Madre y Tutor</span>
+                <i class="bi" [class.bi-chevron-down]="!detailSections().family" [class.bi-chevron-up]="detailSections().family"></i>
+              </button>
+
+              @if (detailSections().family) {
+                <div class="p-4 space-y-6 border-t border-gray-100">
+                  <div>
+                    <h5 class="text-xs font-black uppercase tracking-wider text-indigo-600 mb-3">Padre</h5>
+                    <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
+                      <div class="flex flex-col gap-1">
+                        <label class="text-xs font-black uppercase text-gray-400 ml-1">Nombre del Padre</label>
+                        <input type="text" [(ngModel)]="detailStudent.nameFather" class="bg-white border border-gray-100 rounded-xl px-4 py-3 focus:ring-2 focus:ring-indigo-500 outline-none transition-all">
+                      </div>
+                      <div class="flex flex-col gap-1">
+                        <label class="text-xs font-black uppercase text-gray-400 ml-1">Telefono del Padre</label>
+                        <input type="tel" [(ngModel)]="detailStudent.phoneFather" class="bg-white border border-gray-100 rounded-xl px-4 py-3 focus:ring-2 focus:ring-indigo-500 outline-none transition-all">
+                      </div>
+                      <div class="flex flex-col gap-1">
+                        <label class="text-xs font-black uppercase text-gray-400 ml-1">Ocupacion del Padre</label>
+                        <input type="text" [(ngModel)]="detailStudent.ocupacionFather" class="bg-white border border-gray-100 rounded-xl px-4 py-3 focus:ring-2 focus:ring-indigo-500 outline-none transition-all">
+                      </div>
+                    </div>
+                  </div>
+
+                  <div>
+                    <h5 class="text-xs font-black uppercase tracking-wider text-indigo-600 mb-3">Madre</h5>
+                    <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
+                      <div class="flex flex-col gap-1">
+                        <label class="text-xs font-black uppercase text-gray-400 ml-1">Nombre de la Madre</label>
+                        <input type="text" [(ngModel)]="detailStudent.nameMother" class="bg-white border border-gray-100 rounded-xl px-4 py-3 focus:ring-2 focus:ring-indigo-500 outline-none transition-all">
+                      </div>
+                      <div class="flex flex-col gap-1">
+                        <label class="text-xs font-black uppercase text-gray-400 ml-1">Telefono de la Madre</label>
+                        <input type="tel" [(ngModel)]="detailStudent.phoneMother" class="bg-white border border-gray-100 rounded-xl px-4 py-3 focus:ring-2 focus:ring-indigo-500 outline-none transition-all">
+                      </div>
+                      <div class="flex flex-col gap-1">
+                        <label class="text-xs font-black uppercase text-gray-400 ml-1">Ocupacion de la Madre</label>
+                        <input type="text" [(ngModel)]="detailStudent.ocupacionMother" class="bg-white border border-gray-100 rounded-xl px-4 py-3 focus:ring-2 focus:ring-indigo-500 outline-none transition-all">
+                      </div>
+                    </div>
+                  </div>
+
+                  <div>
+                    <h5 class="text-xs font-black uppercase tracking-wider text-indigo-600 mb-3">Tutor</h5>
+                    <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
+                      <div class="flex flex-col gap-1">
+                        <label class="text-xs font-black uppercase text-gray-400 ml-1">Nombre del Tutor</label>
+                        <input type="text" [(ngModel)]="detailStudent.nameTutor" class="bg-white border border-gray-100 rounded-xl px-4 py-3 focus:ring-2 focus:ring-indigo-500 outline-none transition-all">
+                      </div>
+                      <div class="flex flex-col gap-1">
+                        <label class="text-xs font-black uppercase text-gray-400 ml-1">Telefono del Tutor</label>
+                        <input type="tel" [(ngModel)]="detailStudent.phoneTutor" class="bg-white border border-gray-100 rounded-xl px-4 py-3 focus:ring-2 focus:ring-indigo-500 outline-none transition-all">
+                      </div>
+                      <div class="flex flex-col gap-1">
+                        <label class="text-xs font-black uppercase text-gray-400 ml-1">Ocupacion del Tutor</label>
+                        <input type="text" [(ngModel)]="detailStudent.ocupacionTutor" class="bg-white border border-gray-100 rounded-xl px-4 py-3 focus:ring-2 focus:ring-indigo-500 outline-none transition-all">
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              }
+            </div>
+
+            <div class="bg-gray-50 rounded-2xl border border-gray-100 overflow-hidden transition-all">
+              <button (click)="toggleDetailSection('fiscal')" class="w-full flex items-center justify-between p-4 hover:bg-gray-100 transition-colors">
+                <span class="text-sm font-black text-gray-700 uppercase"><i class="bi bi-receipt-cutoff mr-2 text-indigo-500"></i> Informacion Fiscal</span>
+                <i class="bi" [class.bi-chevron-down]="!detailSections().fiscal" [class.bi-chevron-up]="detailSections().fiscal"></i>
+              </button>
+
+              @if (detailSections().fiscal) {
+                <div class="p-4 grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 border-t border-gray-100">
+                  <div class="flex flex-col gap-1 md:col-span-2">
+                    <label class="text-xs font-black uppercase text-gray-400 ml-1">Razon Social</label>
+                    <input type="text" [(ngModel)]="detailStudent.razonSocial" class="bg-gray-50 border border-gray-100 rounded-xl px-4 py-3 focus:bg-white focus:ring-2 focus:ring-indigo-500 outline-none transition-all">
+                  </div>
+
+                  <div class="flex flex-col gap-1">
+                    <label class="text-xs font-black uppercase text-gray-400 ml-1">RFC</label>
+                    <input type="text" [(ngModel)]="detailStudent.rfc" class="bg-gray-50 border border-gray-100 rounded-xl px-4 py-3 uppercase focus:bg-white focus:ring-2 focus:ring-indigo-500 outline-none transition-all">
+                  </div>
+
+                  <div class="flex flex-col gap-1 md:col-span-2">
+                    <label class="text-xs font-black uppercase text-gray-400 ml-1">Domicilio</label>
+                    <textarea [(ngModel)]="detailStudent.domicilio" rows="2" class="bg-gray-50 border border-gray-100 rounded-xl px-4 py-3 focus:bg-white focus:ring-2 focus:ring-indigo-500 outline-none transition-all resize-none"></textarea>
+                  </div>
+
+                  <div class="flex flex-col gap-1">
+                    <label class="text-xs font-black uppercase text-gray-400 ml-1">Telefono</label>
+                    <input type="text" [(ngModel)]="detailStudent.telefono" class="bg-gray-50 border border-gray-100 rounded-xl px-4 py-3 focus:bg-white focus:ring-2 focus:ring-indigo-500 outline-none transition-all">
+                  </div>
+
+                  <div class="flex flex-col gap-1">
+                    <label class="text-xs font-black uppercase text-gray-400 ml-1">Correo</label>
+                    <input type="email" [(ngModel)]="detailStudent.correo" class="bg-gray-50 border border-gray-100 rounded-xl px-4 py-3 focus:bg-white focus:ring-2 focus:ring-indigo-500 outline-none transition-all">
+                  </div>
+
+                  <div class="flex flex-col gap-1">
+                    <label class="text-xs font-black uppercase text-gray-400 ml-1">Municipio</label>
+                    <input type="text" [(ngModel)]="detailStudent.municipio" class="bg-gray-50 border border-gray-100 rounded-xl px-4 py-3 focus:bg-white focus:ring-2 focus:ring-indigo-500 outline-none transition-all">
+                  </div>
+
+                  <div class="flex flex-col gap-1">
+                    <label class="text-xs font-black uppercase text-gray-400 ml-1">Estado</label>
+                    <input type="text" [(ngModel)]="detailStudent.estado" class="bg-gray-50 border border-gray-100 rounded-xl px-4 py-3 focus:bg-white focus:ring-2 focus:ring-indigo-500 outline-none transition-all">
+                  </div>
+
+                  <div class="flex flex-col gap-1">
+                    <label class="text-xs font-black uppercase text-gray-400 ml-1">Pais</label>
+                    <input type="text" [(ngModel)]="detailStudent.pais" class="bg-gray-50 border border-gray-100 rounded-xl px-4 py-3 focus:bg-white focus:ring-2 focus:ring-indigo-500 outline-none transition-all">
+                  </div>
+
+                  <div class="flex flex-col gap-1">
+                    <label class="text-xs font-black uppercase text-gray-400 ml-1">Metodo</label>
+                    <input type="text" [(ngModel)]="detailStudent.metodo" class="bg-gray-50 border border-gray-100 rounded-xl px-4 py-3 focus:bg-white focus:ring-2 focus:ring-indigo-500 outline-none transition-all">
+                  </div>
+                </div>
+              }
+            </div>
+
+            <div class="bg-gray-50 rounded-2xl border border-gray-100 overflow-hidden transition-all">
+              <button (click)="toggleDetailSection('documents')" class="w-full flex items-center justify-between p-4 hover:bg-gray-100 transition-colors">
+                <span class="text-sm font-black text-gray-700 uppercase"><i class="bi bi-folder2-open mr-2 text-indigo-500"></i> Documentos que Presenta</span>
+                <i class="bi" [class.bi-chevron-down]="!detailSections().documents" [class.bi-chevron-up]="detailSections().documents"></i>
+              </button>
+
+              @if (detailSections().documents) {
+                <div class="p-4 space-y-4 border-t border-gray-100">
+                  <div class="grid grid-cols-[minmax(0,1fr)_auto_auto] gap-3 items-center rounded-2xl bg-white px-4 py-3 border border-gray-100">
+                    <span class="text-sm font-bold text-gray-700">Documento</span>
+                    <span class="text-xs font-black uppercase tracking-wider text-gray-400">Original</span>
+                    <span class="text-xs font-black uppercase tracking-wider text-gray-400">Copia</span>
+                  </div>
+
+                  @for (document of documentFields; track document.key) {
+                    <div class="grid grid-cols-[minmax(0,1fr)_auto_auto] gap-3 items-center rounded-2xl bg-white px-4 py-3 border border-gray-100">
+                      <span class="text-sm font-semibold text-gray-700">{{ document.label }}</span>
+
+                      <button
+                        type="button"
+                        (click)="toggleDetailDocument(document.key, 'original')"
+                        class="px-4 py-2 rounded-xl font-bold transition-all border"
+                        [class.bg-indigo-600]="isDetailDocumentSelected(document.key, 'original')"
+                        [class.text-white]="isDetailDocumentSelected(document.key, 'original')"
+                        [class.border-indigo-600]="isDetailDocumentSelected(document.key, 'original')"
+                        [class.bg-gray-50]="!isDetailDocumentSelected(document.key, 'original')"
+                        [class.text-gray-600]="!isDetailDocumentSelected(document.key, 'original')"
+                        [class.border-gray-200]="!isDetailDocumentSelected(document.key, 'original')">
+                        Original
+                      </button>
+
+                      <button
+                        type="button"
+                        (click)="toggleDetailDocument(document.key, 'copia')"
+                        class="px-4 py-2 rounded-xl font-bold transition-all border"
+                        [class.bg-emerald-600]="isDetailDocumentSelected(document.key, 'copia')"
+                        [class.text-white]="isDetailDocumentSelected(document.key, 'copia')"
+                        [class.border-emerald-600]="isDetailDocumentSelected(document.key, 'copia')"
+                        [class.bg-gray-50]="!isDetailDocumentSelected(document.key, 'copia')"
+                        [class.text-gray-600]="!isDetailDocumentSelected(document.key, 'copia')"
+                        [class.border-gray-200]="!isDetailDocumentSelected(document.key, 'copia')">
+                        Copia
+                      </button>
+                    </div>
+                  }
+
+                  <div class="grid grid-cols-[minmax(0,1fr)_auto] gap-3 items-center rounded-2xl bg-white px-4 py-3 border border-gray-100">
+                    <span class="text-sm font-semibold text-gray-700">Fotos</span>
+
+                    <button
+                      type="button"
+                      (click)="toggleDetailFotosOriginal()"
+                      class="px-4 py-2 rounded-xl font-bold transition-all border"
+                      [class.bg-indigo-600]="detailStudent.fotos"
+                      [class.text-white]="detailStudent.fotos"
+                      [class.border-indigo-600]="detailStudent.fotos"
+                      [class.bg-gray-50]="!detailStudent.fotos"
+                      [class.text-gray-600]="!detailStudent.fotos"
+                      [class.border-gray-200]="!detailStudent.fotos">
+                      Original
+                    </button>
+                  </div>
+                </div>
+              }
             </div>
           </div>
 
-          <div class="flex justify-end gap-4">
-            <button 
-              (click)="closePrintModal()"
-              class="px-4 py-2 bg-gray-300 text-gray-800 rounded-md hover:bg-gray-400 transition-colors">
-              Cancelar
+          <div class="flex items-center justify-end p-6 border-t border-solid border-gray-100 rounded-b gap-3">
+            <button (click)="closeDetailModal()" class="text-gray-500 hover:text-gray-800 font-bold px-4 py-2 transition-all">
+              Cerrar
             </button>
-            <button 
-              (click)="confirmPrint()"
-              class="px-4 py-2 bg-emerald-600 text-white rounded-md hover:bg-emerald-700 transition-colors">
-              Imprimir Seleccionados
+            <button (click)="saveDetailModal()" class="bg-indigo-600 hover:bg-indigo-700 text-white font-bold px-6 py-2.5 rounded-xl shadow-lg shadow-indigo-200 transition-all active:scale-95">
+              Aplicar
             </button>
           </div>
         </div>
       </div>
-    }
+    </div>
+  }
+
+  @if (isPrintModalOpen()) {
+    <div class="fixed inset-0 bg-gray-600 bg-opacity-50 overflow-y-auto h-full w-full z-50 flex justify-center items-center">
+      <div class="relative bg-white p-8 rounded-lg shadow-xl w-11/12 md:w-1/2 lg:w-1/3">
+        <h3 class="text-xl font-bold mb-4">Opciones de Impresion</h3>
+        <p class="mb-6 text-gray-700">Aqui podras anadir filtros para seleccionar que datos deseas imprimir.</p>
+
+        <div class="space-y-4 mb-6">
+          <div>
+            <label class="block text-sm font-medium text-gray-700">Grado</label>
+            <input
+              type="text"
+              [ngModel]="printFilterGrade()"
+              (ngModelChange)="printFilterGrade.set($event)"
+              placeholder="Ej. 1"
+              class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm p-2 border border-gray-200">
+          </div>
+
+          <div>
+            <label class="block text-sm font-medium text-gray-700">Grupo</label>
+            <input
+              type="text"
+              [ngModel]="printFilterGroup()"
+              (ngModelChange)="printFilterGroup.set($event)"
+              placeholder="Ej. A"
+              class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm p-2 border border-gray-200">
+          </div>
+
+          <div>
+            <label class="block text-sm font-medium text-gray-700">Carrera / Programa</label>
+            <select
+              [ngModel]="printFilterCourse()"
+              (ngModelChange)="printFilterCourse.set($event)"
+              class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm p-2 border border-gray-200">
+              <option [value]="0">Todas las carreras</option>
+              @for (course of coursesVigentes(); track course.id) {
+                <option [value]="course.id">{{ course.name }}</option>
+              }
+            </select>
+          </div>
+        </div>
+
+        <div class="flex justify-end gap-4">
+          <button
+            (click)="closePrintModal()"
+            class="px-4 py-2 bg-gray-300 text-gray-800 rounded-md hover:bg-gray-400 transition-colors">
+            Cancelar
+          </button>
+          <button
+            (click)="confirmPrint()"
+            class="px-4 py-2 bg-emerald-600 text-white rounded-md hover:bg-emerald-700 transition-colors">
+            Imprimir Seleccionados
+          </button>
+        </div>
+      </div>
+    </div>
+  }
+
+  <!-- Modal de Kárdex -->
+  @if (isKardexModalOpen()) {
+    <div class="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-50 backdrop-blur-sm">
+      <div class="bg-white rounded-xl shadow-2xl w-full max-w-5xl max-h-[90vh] overflow-hidden flex flex-col m-4">
+        <div class="p-4 border-b bg-gray-50 flex justify-between items-center">
+          <h3 class="text-xl font-bold text-gray-800 flex items-center gap-2">
+            <i class="bi bi-mortarboard text-indigo-600"></i>
+            Historial Académico
+          </h3>
+          <button (click)="closeKardexModal()" class="text-gray-400 hover:text-red-500 transition-colors">
+            <i class="bi bi-x-lg text-xl"></i>
+          </button>
+        </div>
+        <div class="flex-1 overflow-y-auto p-2 bg-gray-100">
+          <!-- El componente Kardex se carga aquí, recibiendo el ID del estudiante -->
+          <app-kardex [studentId]="selectedKardexId()"></app-kardex>
+        </div>
+        <div class="p-4 border-t bg-gray-50 flex justify-end">
+          <button (click)="closeKardexModal()" class="px-6 py-2 bg-gray-200 text-gray-700 rounded-lg hover:bg-gray-300 transition-colors">
+            Cerrar
+          </button>
+        </div>
+      </div>
+    </div>
+  }
 </div>

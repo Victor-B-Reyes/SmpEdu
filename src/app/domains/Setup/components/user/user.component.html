@@ -44,6 +44,7 @@
         [rowData]="rowData()"
         (gridReady)="onGridReady($event)"
         rowSelection="single"
+        (cellValueChanged)="onCellValueChanged($event)"
         (cellDoubleClicked)="onCellDoubleClicked($event)">
       </ag-grid-angular>
     </div>

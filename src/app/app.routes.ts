@@ -33,7 +33,13 @@ export const routes: Routes = [
             path: 'list', 
             canActivate: [MasterPermissionsGuard],
             data: { permissions: { master: 'Students', detailed: 'List' } },
-            loadComponent: () => import('./domains/Setup/components/user/user.component') 
+            loadComponent: () => import('./domains/Students/components/students.component') 
+          },
+          { 
+            path: 'kardex', 
+            canActivate: [MasterPermissionsGuard],
+            data: { permissions: { master: 'Students', detailed: 'Kardex' } },
+            loadComponent: () => import('./domains/Students/kardex/kardex.component')
           }, 
         ]
       },
@@ -103,6 +109,12 @@ export const routes: Routes = [
             canActivate: [MasterPermissionsGuard],
             data: { permissions: { master: 'SchoolYear', detailed: 'LoadSubject' } },
             loadComponent: () => import('./domains/schoolYear/components/semester/semester.component') 
+          },
+          { 
+            path: 'schedule', 
+            canActivate: [MasterPermissionsGuard],
+            data: { permissions: { master: 'SchoolYear', detailed: 'Schedule' } },
+            loadComponent: () => import('./domains/schoolYear/components/schedule/schedule.component')
           }, 
         ]
       },

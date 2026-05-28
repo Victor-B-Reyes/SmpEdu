@@ -1,0 +1,123 @@
+<div class="schedule-container">
+  <div class="schedule-header">
+    <h1>Horarios de Clase</h1>
+    <div class="header-actions">
+      <button class="btn-action" (click)="printSchedule()">
+        🖨️ Imprimir
+      </button>
+      <button class="btn-action" (click)="exportScheduleToCalendar()">
+        📅 Exportar Calendario
+      </button>
+    </div>
+  </div>
+
+  <!-- Loading State -->
+  <div *ngIf="loading" class="loading">
+    Cargando información...
+  </div>
+
+  <!-- Error State -->
+  <div *ngIf="error" class="alert alert-danger">
+    {{ error }}
+  </div>
+
+  <!-- Filtros -->
+  <div class="filters-section">
+    <div class="filter-group">
+      <label for="semesterSelect">Semestre:</label>
+      <select id="semesterSelect" (change)="onSemesterSelected($event)" class="form-control">
+        <option value="">-- Selecciona un semestre --</option>
+        <option *ngFor="let semester of semesters" [value]="semester.id">
+          {{ semester.comment }} ({{ semester.startDate | date:'MMM yyyy' }})
+        </option>
+      </select>
+    </div>
+
+    <div class="filter-group" *ngIf="selectedSemesterId && grades.length > 0">
+      <label for="gradeSelect">Grado:</label>
+      <select id="gradeSelect" [(ngModel)]="selectedGrade" (change)="onGradeOrGroupSelected()" class="form-control">
+        <option value="">-- Selecciona grado --</option>
+        <option *ngFor="let grade of grades" [value]="grade">
+          Grado {{ grade }}
+        </option>
+      </select>
+    </div>
+
+    <div class="filter-group" *ngIf="selectedSemesterId && groups.length > 0">
+      <label for="groupSelect">Grupo:</label>
+      <select id="groupSelect" [(ngModel)]="selectedGroup" (change)="onGradeOrGroupSelected()" class="form-control">
+        <option value="">-- Selecciona grupo --</option>
+        <option *ngFor="let group of groups" [value]="group">
+          Grupo {{ group }}
+        </option>
+      </select>
+    </div>
+  </div>
+
+  <!-- Schedule Grid -->
+  <div *ngIf="selectedClassOffers.length > 0 && !loading" class="schedule-grid">
+    <h2>Horario - Grado {{ selectedGrade }} Grupo {{ selectedGroup }}</h2>
+
+    <div class="class-offers">
+      <div *ngFor="let offer of selectedClassOffers" class="class-card">
+        <div class="class-header">
+          <h3>Materia {{ offer.subjectId }}</h3>
+          <span class="classroom">Aula: {{ offer.classroom }}</span>
+        </div>
+
+        <div class="class-details">
+          <p><strong>Capacidad:</strong> {{ offer.capacity }} estudiantes</p>
+          <p *ngIf="offer.teacherId"><strong>Profesor ID:</strong> {{ offer.teacherId }}</p>
+        </div>
+
+        <div class="schedule-blocks">
+          <h4>Horarios:</h4>
+          <div *ngIf="offer.schedules && offer.schedules.length > 0" class="schedule-list">
+            <div *ngFor="let schedule of offer.schedules" class="schedule-block">
+              <span class="day">{{ getDayName(schedule.dayOfWeek) }}</span>
+              <span class="time">{{ formatTime(schedule.startTime) }} - {{ formatTime(schedule.endTime) }}</span>
+            </div>
+          </div>
+          <div *ngIf="!offer.schedules || offer.schedules.length === 0" class="no-schedules">
+            Sin horarios asignados
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Weekly Schedule Table View -->
+  <div *ngIf="selectedClassOffers.length > 0 && !loading" class="weekly-schedule">
+    <h2>Vista Semanal</h2>
+    <table class="schedule-table">
+      <thead>
+        <tr>
+          <th>Hora</th>
+          <th *ngFor="let day of dayOfWeekNames">{{ day }}</th>
+        </tr>
+      </thead>
+      <tbody>
+        <!-- Generar filas de horas -->
+        <tr *ngFor="let hour of [7,8,9,10,11,12,13,14,15,16,17,18]">
+          <td class="time-cell">{{ hour }}:00</td>
+          <td *ngFor="let day of dayOfWeekNames" class="schedule-cell">
+            <!-- Mostrar materia si hay en esa hora/día -->
+            <div *ngFor="let offer of selectedClassOffers">
+              <div *ngFor="let schedule of offer.schedules"
+                   [ngClass]="{'active': schedule.dayOfWeek === dayOfWeekNames.indexOf(day)}">
+                <small *ngIf="schedule.dayOfWeek === dayOfWeekNames.indexOf(day)">
+                  Materia {{ offer.subjectId }}
+                </small>
+              </div>
+            </div>
+          </td>
+        </tr>
+      </tbody>
+    </table>
+  </div>
+
+  <!-- No Selection -->
+  <div *ngIf="!selectedSemesterId || (selectedSemesterId && selectedClassOffers.length === 0 && !loading)" class="no-selection">
+    <p>Selecciona un semestre, grado y grupo para ver los horarios</p>
+  </div>
+</div>

@@ -1,51 +1,168 @@
 <div class="space-y-4">
   <div class="flex justify-between items-center">
-    <h2 class="text-2xl font-black text-gray-800">Listado de <span class="text-indigo-600">Ciclos escolares</span></h2>
-    
+    <h2 class="text-2xl font-black text-gray-800">Proceso de <span class="text-indigo-600">reinscripcion</span></h2>
+
     <div class="flex gap-2">
-      <!-- Botón Añadir -->
-      <button 
+      <button
         (click)="addData()"
         class="bg-indigo-600 hover:bg-indigo-700 text-white px-4 py-2 rounded-xl font-bold shadow-lg shadow-indigo-200 transition-all active:scale-95 flex items-center gap-2">
         <i class="bi bi-plus-lg text-lg"></i>
-        Añadir
+        Anadir
       </button>
 
-      <!-- Botón Refrescar -->
-      <button 
+      <button
         (click)="refreshData()"
         class="bg-blue-500 hover:bg-blue-600 text-white px-4 py-2 rounded-xl font-bold shadow-lg shadow-blue-200 transition-all active:scale-95 flex items-center gap-2">
         <i class="bi bi-arrow-clockwise text-lg"></i>
         Refrescar
       </button>
-
-      <!-- Botón Guardar / Actualizar -->
-      <button 
-        (click)="saveChanges()"
-        class="bg-amber-500 hover:bg-amber-600 text-white px-4 py-2 rounded-xl font-bold shadow-lg shadow-amber-200 transition-all active:scale-95 flex items-center gap-2">
-        <i class="bi bi-floppy text-lg"></i>
-        Guardar
-      </button>
-
-      <!-- Botón Eliminar -->
-      <button 
-        (click)="deleteSelected()"
-        class="bg-red-500 hover:bg-red-600 text-white px-4 py-2 rounded-xl font-bold shadow-lg shadow-red-200 transition-all active:scale-95 flex items-center gap-2">
-        <i class="bi bi-trash text-lg"></i>
-        Eliminar
-      </button>
     </div>
   </div>
 
   <div class="ag-theme-quartz shadow-sm rounded-2xl overflow-hidden border border-gray-200" style="height: 75vh; width: 100%;">
-      <ag-grid-angular
-        style="width: 100%; height: 100%;"
-        [columnDefs]="columnDefs()"
-        [rowData]="rowData()"
-        (gridReady)="onGridReady($event)"
-        rowSelection="single"
-        (cellDoubleClicked)="onCellDoubleClicked($event)"
-        (cellValueChanged)="onCellValueChanged($event)">
-      </ag-grid-angular>
+    <ag-grid-angular
+      style="width: 100%; height: 100%;"
+      [columnDefs]="columnDefs()"
+      [rowData]="rowData()"
+      (gridReady)="onGridReady($event)"
+      rowSelection="single"
+      (cellDoubleClicked)="onCellDoubleClicked($event)"
+      (cellValueChanged)="onCellValueChanged($event)">
+    </ag-grid-angular>
+  </div>
+
+  @if (isModalOpen()) {
+    <div class="fixed inset-0 z-50 flex items-center justify-center overflow-x-hidden overflow-y-auto outline-none focus:outline-none">
+      <div class="fixed inset-0 bg-black/40 backdrop-blur-sm transition-opacity" (click)="closeModal()"></div>
+
+      <div class="relative w-full max-w-4xl mx-auto my-6 z-50 animate-in fade-in zoom-in duration-200">
+        <div class="relative flex flex-col w-full bg-white border-0 rounded-3xl shadow-2xl outline-none focus:outline-none">
+          <div class="flex items-start justify-between p-6 border-b border-solid border-gray-100 rounded-t">
+            <div>
+              <h3 class="text-2xl font-black text-gray-800">
+                Nueva <span class="text-indigo-600">Reinscripcion</span>
+              </h3>
+              <p class="text-sm text-gray-500 mt-1">Selecciona un alumno existente, actualiza su carrera, grado y grupo, y genera el registro.</p>
+            </div>
+            <button (click)="closeModal()" class="p-1 ml-auto bg-transparent border-0 text-gray-400 hover:text-indigo-600 transition-colors">
+              <i class="bi bi-x-lg text-xl"></i>
+            </button>
+          </div>
+
+          <div class="relative p-8 flex-auto max-h-[70vh] overflow-y-auto space-y-6">
+            <div class="grid grid-cols-1 lg:grid-cols-[1.25fr_1fr] gap-6">
+              <div class="rounded-2xl border border-gray-100 bg-gray-50 p-5 space-y-4">
+                <div>
+                  <h4 class="text-sm font-black text-indigo-600 uppercase tracking-wider">1. Seleccionar Alumno</h4>
+                  <p class="text-sm text-gray-500 mt-1">Busca por numero de control, nombre, grado o grupo.</p>
+                </div>
+
+                <div class="flex flex-col gap-1">
+                  <label class="text-xs font-black uppercase text-gray-400 ml-1">Buscar Alumno</label>
+                  <input
+                    type="text"
+                    [ngModel]="studentSearch()"
+                    (ngModelChange)="studentSearch.set($event)"
+                    placeholder="Ej. 20240001 o Juan Perez"
+                    class="bg-white border border-gray-100 rounded-xl px-4 py-3 focus:bg-white focus:ring-2 focus:ring-indigo-500 outline-none transition-all">
+                </div>
+
+                <div class="flex flex-col gap-1">
+                  <label class="text-xs font-black uppercase text-gray-400 ml-1">Alumno</label>
+                  <select
+                    [ngModel]="selectedStudentId()"
+                    (ngModelChange)="onStudentSelected($event)"
+                    class="bg-white border border-gray-100 rounded-xl px-4 py-3 focus:bg-white focus:ring-2 focus:ring-indigo-500 outline-none transition-all appearance-none">
+                    <option [ngValue]="0">Seleccione un alumno</option>
+                    @for (student of filteredStudents(); track student.id) {
+                      <option [ngValue]="student.id">
+                        {{ student.controlNumber }} - {{ getStudentFullName(student) }}
+                      </option>
+                    }
+                  </select>
+                </div>
+
+                <div class="rounded-2xl border border-dashed border-indigo-200 bg-white p-4 min-h-36">
+                  @if (studentForm.id > 0) {
+                    <div class="space-y-2">
+                      <p class="text-xs font-black uppercase tracking-wider text-indigo-600">Alumno Seleccionado</p>
+                      <p class="text-lg font-black text-gray-800">{{ getStudentFullName(studentForm) }}</p>
+                      <p class="text-sm text-gray-500">Control: {{ studentForm.controlNumber }}</p>
+                      <p class="text-sm text-gray-500">Carrera actual: {{ getCourseName(studentForm.idCourses) }}</p>
+                      <p class="text-sm text-gray-500">Grado actual: {{ studentForm.grade || 'Sin asignar' }}</p>
+                      <p class="text-sm text-gray-500">Grupo actual: {{ studentForm.group || 'Sin asignar' }}</p>
+                    </div>
+                  } @else {
+                    <div class="h-full flex items-center justify-center text-sm text-gray-400 text-center">
+                      Selecciona un alumno para cargar sus datos actuales.
+                    </div>
+                  }
+                </div>
+              </div>
+
+              <div class="rounded-2xl border border-gray-100 bg-gray-50 p-5 space-y-4">
+                <div>
+                  <h4 class="text-sm font-black text-indigo-600 uppercase tracking-wider">2. Actualizar Datos Academicos</h4>
+                  <p class="text-sm text-gray-500 mt-1">Estos cambios se guardaran en la ficha del alumno antes de crear la reinscripcion.</p>
+                </div>
+
+                <div class="flex flex-col gap-1">
+                  <label class="text-xs font-black uppercase text-gray-400 ml-1">Curso / Carrera</label>
+                  <select
+                    [(ngModel)]="studentForm.idCourses"
+                    class="bg-white border border-gray-100 rounded-xl px-4 py-3 focus:bg-white focus:ring-2 focus:ring-indigo-500 outline-none transition-all appearance-none">
+                    <option [ngValue]="0">Seleccione un curso</option>
+                    @for (course of coursesVigentes(); track course.id) {
+                      <option [ngValue]="course.id">{{ course.name }}</option>
+                    }
+                  </select>
+                </div>
+
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <div class="flex flex-col gap-1">
+                    <label class="text-xs font-black uppercase text-gray-400 ml-1">Grado</label>
+                    <input
+                      type="text"
+                      [(ngModel)]="studentForm.grade"
+                      placeholder="Ej. 2"
+                      class="bg-white border border-gray-100 rounded-xl px-4 py-3 focus:bg-white focus:ring-2 focus:ring-indigo-500 outline-none transition-all">
+                  </div>
+
+                  <div class="flex flex-col gap-1">
+                    <label class="text-xs font-black uppercase text-gray-400 ml-1">Grupo</label>
+                    <input
+                      type="text"
+                      [(ngModel)]="studentForm.group"
+                      placeholder="Ej. B"
+                      class="bg-white border border-gray-100 rounded-xl px-4 py-3 focus:bg-white focus:ring-2 focus:ring-indigo-500 outline-none transition-all">
+                  </div>
+                </div>
+
+                <div class="flex flex-col gap-1">
+                  <label class="text-xs font-black uppercase text-gray-400 ml-1">Monto de Reinscripcion</label>
+                  <input
+                    type="number"
+                    [ngModel]="monto()"
+                    (ngModelChange)="monto.set($event)"
+                    placeholder="0.00"
+                    class="bg-white border border-gray-100 rounded-xl px-4 py-3 focus:bg-white focus:ring-2 focus:ring-indigo-500 outline-none transition-all">
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <div class="flex items-center justify-end p-6 border-t border-solid border-gray-100 rounded-b gap-3">
+            <button (click)="closeModal()" class="text-gray-500 hover:text-gray-800 font-bold px-4 py-2 transition-all">
+              Cerrar
+            </button>
+            <button
+              (click)="confirmAddStudent()"
+              class="bg-indigo-600 hover:bg-indigo-700 text-white font-bold px-6 py-2.5 rounded-xl shadow-lg shadow-indigo-200 transition-all active:scale-95">
+              Confirmar
+            </button>
+          </div>
+        </div>
+      </div>
     </div>
+  }
 </div>

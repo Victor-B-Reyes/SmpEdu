@@ -1,4 +1,4 @@
-import { ChangeDetectionStrategy, Component, effect, inject, signal, computed } from '@angular/core';
+import { ChangeDetectionStrategy, Component, computed, effect, inject, signal } from '@angular/core';
 import { AgGridAngular } from 'ag-grid-angular';
 import {
   CellDoubleClickedEvent,
@@ -8,14 +8,13 @@ import {
   GridReadyEvent,
   ICellRendererParams,
 } from 'ag-grid-enterprise';
-import { TrackingService } from '../../../../service/tracking.service';
-import { UsersService } from '../../../../service/users.service';
-import { SignalsService } from '../../../../service/signals.service';
-import { UsersxpermissionsService } from '../../../../service/usersxpermissions.service';
-import { alerts } from '../../../../helpers/alerts';
 import { catchError, concat, EMPTY, lastValueFrom, tap, toArray } from 'rxjs';
+import { alerts } from '../../../../helpers/alerts';
+import { TrackingService } from '../../../../service/tracking.service';
+import { SignalsService } from '../../../../service/signals.service';
+import { UsersService } from '../../../../service/users.service';
+import { UsersxpermissionsService } from '../../../../service/usersxpermissions.service';
 import { UserSecurityComponent } from './user-security.component';
-
 
 @Component({
   selector: 'app-user',
@@ -26,43 +25,43 @@ import { UserSecurityComponent } from './user-security.component';
 })
 export default class User {
   private gridApi!: GridApi;
+  private readonly originalRows = new Map<number | string, string>();
   public trackingService = inject(TrackingService);
   public usersService = inject(UsersService);
   public signalsService = inject(SignalsService);
   public usersxrootService = inject(UsersxpermissionsService);
 
-  // Usamos computed para que idCompany siempre sea reactivo y dependa del servicio
   protected readonly idCompany = computed(() => this.signalsService.getRootSelectedBySidebar() ?? 0);
-  
+
   notSavedChanges: boolean = false;
   newlyAddedRows: any[] = [];
 
   constructor() {
     effect(() => {
       const currentCompanyId = this.idCompany();
-      //console.log('idCompany:', currentCompanyId);
       if (currentCompanyId > 0) {
         this.loadData(currentCompanyId);
       }
     });
   }
+
   loadData(companyId?: number) {
     const id = companyId ?? this.idCompany();
     if (id === 0) return;
 
     this.usersService.getDataUsers(id).subscribe({
       next: (response) => {
-        // Actualizamos rowData con la respuesta del servidor para que el grid se refresque
         const data = Array.isArray(response) ? response : (response?.data || []);
         this.rowData.set(data);
-        //console.log('Datos cargados correctamente:', data);
+        this.storeOriginalRows(data);
+        this.notSavedChanges = false;
       },
       error: (error) => {
         console.error('Error en la solicitud:', error);
       }
     });
   }
-  // Datos de apoyo para el combo de empleados
+
   private readonly employes = [
     { id: 101, name: 'Juan Pérez' },
     { id: 102, name: 'María García' },
@@ -70,11 +69,11 @@ export default class User {
   ];
 
   protected readonly selectedUserId = signal<number | null>(null);
-  
+
   protected readonly columnDefs = signal<ColDef[]>([
     {
-      field: "displayName",
-      headerName: "Nombre *",
+      field: 'displayName',
+      headerName: 'Nombre *',
       editable: (params) => !!params.data,
       filter: true,
       valueSetter: (params) => {
@@ -113,8 +112,8 @@ export default class User {
       },
     },
     {
-      field: "email",
-      headerName: "Email",
+      field: 'email',
+      headerName: 'Email',
       editable: (params) => !!params.data,
       filter: true,
       valueSetter: (params) => {
@@ -126,16 +125,16 @@ export default class User {
       flex: 1
     },
     {
-      field: "project",
-      headerName: "Empleado",
+      field: 'project',
+      headerName: 'Empleado',
       editable: true,
       flex: 1,
       cellEditor: 'agSelectCellEditor',
       cellEditorParams: {
-        values: ["0", ...this.employes.map(e => String(e.id))]
+        values: ['0', ...this.employes.map(e => String(e.id))]
       },
       refData: {
-        "0": "SIN ASIGNAR",
+        '0': 'SIN ASIGNAR',
         ...this.employes.reduce((acc: any, curr) => {
           acc[String(curr.id)] = curr.name;
           return acc;
@@ -143,20 +142,20 @@ export default class User {
       }
     },
     {
-      field: "password",
-      headerName: "Contraseña",
+      field: 'password',
+      headerName: 'Contraseña',
       flex: 1,
       editable: true,
       cellRenderer: (params: ICellRendererParams) => {
         if (params.value) return `••••••••`;
-        return params.data?.id === 0 
-          ? `<span class="text-danger fw-bold">REQUERIDO</span>` 
+        return params.data?.id === 0
+          ? `<span class="text-danger fw-bold">REQUERIDO</span>`
           : `••••••••`;
       }
     },
     {
-      field: "signature",
-      headerName: "Firma",
+      field: 'signature',
+      headerName: 'Firma',
       editable: (params) => !!params.data,
       filter: true,
       valueSetter: (params) => {
@@ -168,14 +167,24 @@ export default class User {
       flex: 1
     },
     {
-      headerName: "Seguridad",
-      field: "Security",
+      headerName: 'Seguridad',
+      field: 'Security',
       flex: 1,
       editable: false,
       cellRenderer: (params: ICellRendererParams) => {
         const button = document.createElement('button');
         button.innerText = 'Seguridad';
-        button.classList.add('bg-indigo-100', 'text-indigo-700', 'px-3', 'py-1', 'rounded-lg', 'text-xs', 'font-bold', 'hover:bg-indigo-200', 'transition-colors');
+        button.classList.add(
+          'bg-indigo-100',
+          'text-indigo-700',
+          'px-3',
+          'py-1',
+          'rounded-lg',
+          'text-xs',
+          'font-bold',
+          'hover:bg-indigo-200',
+          'transition-colors'
+        );
         button.addEventListener('click', () => {
           if (params.data) this.setSelectedUserId(params.data.id);
         });
@@ -184,8 +193,6 @@ export default class User {
     }
   ]);
 
-  
-  
   protected readonly rowData = signal<any[]>([]);
 
   public onGridReady(params: GridReadyEvent) {
@@ -197,22 +204,22 @@ export default class User {
   }
 
   public onCellValueChanged(event: CellValueChangedEvent) {
-    if (!event.data.__isNew) {
-      event.data.__modified = true;
-      this.notSavedChanges = true;
-      // Forzamos la actualización del Signal para que Angular detecte la mutación del objeto
-      this.rowData.update(prev => [...prev]);
-    }
+    this.updateRowModifiedState(event.data);
+    this.notSavedChanges = this.hasPendingChanges();
+    this.rowData.update(prev => [...prev]);
   }
 
   public setSelectedUserId(id: number) {
     if (id === 0) {
-      alerts.basicAlert('Registro Pendiente', 'Debe guardar los cambios del nuevo usuario antes de configurar su seguridad.', 'warning');
+      alerts.basicAlert(
+        'Registro Pendiente',
+        'Debe guardar los cambios del nuevo usuario antes de configurar su seguridad.',
+        'warning'
+      );
       return;
     }
-    
+
     this.selectedUserId.set(id);
-    //console.log('Abriendo panel de seguridad para usuario:', id);
   }
 
   public closeSecurity() {
@@ -221,45 +228,46 @@ export default class User {
 
   public addUser() {
     const newUser = {
-      id: 0, // Usamos 0 para que el backend lo identifique como nuevo registro
+      id: 0,
       active: 1,
       age: 0,
       allowWhatsapp: true,
       countEmpresas: 1,
       countPermisosMaestros: 0,
       countSucursales: 6,
-      country: "",
+      country: '',
       displayName: '',
       email: '',
       idDepartament: 1,
       idRol: 4,
-      idTelegram: "SINID",
+      idTelegram: 'SINID',
       id_company: this.idCompany(),
       id_position: 20,
       isRoot: false,
-      method: "EDUCONTROL",
-      password: "",
-      phone: "",
+      method: 'EDUCONTROL',
+      password: '',
+      phone: '',
       picture: null,
-      project: "0", // Mantenemos "0" para que en el grid aparezca como "SIN ASIGNAR"
-      signature: "",
-      usersmall: "SINUSER"
+      project: '0',
+      signature: '',
+      usersmall: 'SINUSER'
     };
-    //console.log('Nuevo usuario a agregar:', newUser);
 
     const rowWithFlags = { ...newUser, __isNew: true };
     this.rowData.update(prev => [rowWithFlags, ...prev]);
     this.notSavedChanges = true;
-    
-    // Iniciamos la edición en el nombre automáticamente
+
     setTimeout(() => this.gridApi.startEditingCell({ rowIndex: 0, colKey: 'displayName' }), 100);
   }
 
   public async saveChanges() {
     this.gridApi.stopEditing();
-    
-    const newRows = this.rowData().filter(row => row.__isNew);
-    const modifiedRows = this.rowData().filter(row => row.__modified && !row.__isNew);
+
+    const allRows = this.getAllRowsFromGrid();
+    this.rowData.set([...allRows]);
+
+    const newRows = allRows.filter(row => row.__isNew);
+    const modifiedRows = allRows.filter(row => row.__modified && !row.__isNew);
 
     if (newRows.length === 0 && modifiedRows.length === 0) {
       alerts.basicAlert('Información', 'No hay cambios pendientes por guardar.', 'info');
@@ -362,7 +370,6 @@ export default class User {
       this.notSavedChanges = false;
       this.newlyAddedRows = [];
       setTimeout(() => this.loadData(), 500);
-
     } catch (error: any) {
       console.error('Error al guardar usuarios:', error);
       let errorMessage = 'Ocurrió un error al actualizar los datos. Por favor, intente nuevamente.';
@@ -377,7 +384,6 @@ export default class User {
   public refreshData() {
     this.gridApi.stopEditing();
     this.loadData();
-    //console.log('Información refrescada desde el servidor.');
   }
 
   public deleteSelected() {
@@ -395,7 +401,6 @@ export default class User {
       return;
     }
 
-    // Si es una fila nueva no guardada en DB, solo la quitamos del signal localmente
     if (selectedData.__isNew || id === 0) {
       this.rowData.update(prev => prev.filter(row => row !== selectedData));
       return;
@@ -431,8 +436,51 @@ export default class User {
     return cleaned;
   }
 
+  private storeOriginalRows(rows: any[]) {
+    this.originalRows.clear();
+
+    for (const row of rows) {
+      if (row?.id !== undefined && row?.id !== null) {
+        this.originalRows.set(row.id, this.serializeRow(row));
+      }
+    }
+  }
+
+  private serializeRow(row: any): string {
+    const { __isNew, __modified, ...cleaned } = row ?? {};
+    return JSON.stringify(cleaned);
+  }
+
+  private updateRowModifiedState(row: any) {
+    if (!row || row.__isNew) {
+      return;
+    }
+
+    const originalRow = this.originalRows.get(row.id);
+    row.__modified = originalRow !== undefined && originalRow !== this.serializeRow(row);
+  }
+
+  private getAllRowsFromGrid(): any[] {
+    if (!this.gridApi) {
+      return this.rowData();
+    }
+
+    const rows: any[] = [];
+    this.gridApi.forEachNode(node => {
+      if (node.data) {
+        this.updateRowModifiedState(node.data);
+        rows.push(node.data);
+      }
+    });
+
+    return rows;
+  }
+
+  private hasPendingChanges(): boolean {
+    return this.rowData().some(row => row.__isNew || row.__modified);
+  }
+
   private procesoData(userId: number) {
-    // Implementación necesaria para branchPermissionFromEmployee
     return EMPTY;
   }
 }

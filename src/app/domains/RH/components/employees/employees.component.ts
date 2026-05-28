@@ -1,4 +1,4 @@
-import { ChangeDetectionStrategy, Component, effect, inject, signal } from '@angular/core';
+import { ChangeDetectionStrategy, Component, computed, effect, inject, signal } from '@angular/core';
 import { AgGridAngular } from 'ag-grid-angular';
 import {
   CellDoubleClickedEvent,
@@ -11,6 +11,7 @@ import {
 import { catchError, concat, EMPTY, lastValueFrom, toArray } from 'rxjs';
 import { alerts } from '../../../../helpers/alerts';
 import { EmployeesService } from '../../../../service/employees.service';
+import { SignalsService } from '../../../../service/signals.service';
 import { TrackingService } from '../../../../service/tracking.service';
 
 @Component({
@@ -22,24 +23,27 @@ import { TrackingService } from '../../../../service/tracking.service';
 })
 export default class Employees {
   private gridApi!: GridApi;
+  private readonly originalRows = new Map<number | string, string>();
   public trackingService = inject(TrackingService);
   public employeesService = inject(EmployeesService);
+  public signalsService = inject(SignalsService);
   public selectedUserId: number | string | null = null;
   public typePerson: string | null = null;
 
-  idBranch: number = 0;
+  protected readonly idBranch = computed(() => this.signalsService.getBranchSelectedBySidebar() ?? 0);
   notSavedChanges: boolean = false;
 
   constructor() {
     effect(() => {
-      const branchId = Number(this.trackingService.getBranch()) || 0;
-      this.idBranch = branchId;
+      const branchId = this.idBranch();
+      console.log('Sucursal seleccionada:', branchId);
       this.loadData();
     });
   }
 
   loadData() {
-    const branchId = this.idBranch;
+    const branchId = this.idBranch();
+    console.log('Cargando empleados para la sucursal ID:', branchId);
     if (branchId === 0) {
       this.rowData.set([]);
       return;
@@ -49,6 +53,7 @@ export default class Employees {
       next: (response: any) => {
         const data = Array.isArray(response) ? response : (response?.data || []);
         this.rowData.set(data);
+        this.storeOriginalRows(data);
         this.notSavedChanges = false;
         //console.log('Datos cargados correctamente:', data);
       },
@@ -167,11 +172,9 @@ export default class Employees {
   }
 
   public onCellValueChanged(event: CellValueChangedEvent) {
-    if (!event.data?.__isNew) {
-      event.data.__modified = true;
-    }
+    this.updateRowModifiedState(event.data);
 
-    this.notSavedChanges = true;
+    this.notSavedChanges = this.hasPendingChanges();
     this.rowData.update(prev => [...prev]);
   }
 
@@ -208,9 +211,62 @@ export default class Employees {
 
     return {
       ...cleaned,
-      idBranch: cleaned.idBranch ?? this.idBranch,
+      idBranch: cleaned.idBranch ?? this.idBranch(),
       ingressDate: normalizedIngressDate,
     };
+  }
+
+  private storeOriginalRows(rows: any[]) {
+    this.originalRows.clear();
+
+    for (const row of rows) {
+      if (row?.id !== undefined && row?.id !== null) {
+        this.originalRows.set(row.id, this.serializeRow(row));
+      }
+    }
+  }
+
+  private serializeRow(row: any): string {
+    const { __isNew, __modified, ...cleaned } = row ?? {};
+    const normalizedIngressDate = cleaned.ingressDate
+      ? (cleaned.ingressDate instanceof Date
+        ? cleaned.ingressDate.toISOString()
+        : new Date(cleaned.ingressDate).toISOString())
+      : null;
+
+    return JSON.stringify({
+      ...cleaned,
+      ingressDate: normalizedIngressDate,
+    });
+  }
+
+  private updateRowModifiedState(row: any) {
+    if (!row || row.__isNew) {
+      return;
+    }
+
+    const originalRow = this.originalRows.get(row.id);
+    row.__modified = originalRow !== undefined && originalRow !== this.serializeRow(row);
+  }
+
+  private getAllRowsFromGrid(): any[] {
+    if (!this.gridApi) {
+      return this.rowData();
+    }
+
+    const rows: any[] = [];
+    this.gridApi.forEachNode(node => {
+      if (node.data) {
+        this.updateRowModifiedState(node.data);
+        rows.push(node.data);
+      }
+    });
+
+    return rows;
+  }
+
+  private hasPendingChanges(): boolean {
+    return this.rowData().some(row => row.__isNew || row.__modified);
   }
 
   public openSchedule(userId: number | string, type: string) {
@@ -220,7 +276,9 @@ export default class Employees {
   }
 
   public addEmployee() {
-    if (this.idBranch === 0) {
+    const branchId = this.idBranch();
+
+    if (branchId === 0) {
       alerts.basicAlert('Sucursal requerida', 'Selecciona una sucursal antes de agregar empleados.', 'warning');
       return;
     }
@@ -235,7 +293,7 @@ export default class Employees {
       cp: '',
       email: '',
       employeeCode: '',
-      idBranch: this.idBranch,
+      idBranch: branchId,
       idDepto: 0,
       idPosition: 0,
       ingressDate: new Date().toISOString(),
@@ -259,8 +317,11 @@ export default class Employees {
   public async saveChanges() {
     this.gridApi.stopEditing();
 
-    const newRows = this.rowData().filter(row => row.__isNew);
-    const modifiedRows = this.rowData().filter(row => row.__modified && !row.__isNew);
+    const allRows = this.getAllRowsFromGrid();
+    this.rowData.set([...allRows]);
+
+    const newRows = allRows.filter(row => row.__isNew);
+    const modifiedRows = allRows.filter(row => row.__modified && !row.__isNew);
 
     if (newRows.length === 0 && modifiedRows.length === 0) {
       alerts.basicAlert('Información', 'No hay cambios pendientes por guardar.', 'info');

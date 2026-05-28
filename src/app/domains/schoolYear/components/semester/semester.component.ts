@@ -62,7 +62,7 @@ export default class Semester {
       next: (response) => {
         const data = Array.isArray(response) ? response : (response?.data || []);
         this.rowData.set(data);
-          //console.log('Semestres cargados:', this.rowData());
+          console.log('Semestres cargados:', this.rowData());
       },
       error: (error) => {
         console.error('Error en la solicitud:', error);
@@ -282,7 +282,7 @@ export default class Semester {
       }
     },
    {
-      headerName: "Registration",
+      headerName: "Reinscripción",
       field: "Rescripcion",
       width: 150,
       editable: false,

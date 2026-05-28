@@ -75,6 +75,13 @@ export default class PageSchoolYear implements OnInit {
       traduc: 'Cargar Materia',
       icon: 'mortarboard', // Coincide con subicon del permiso 8
     },
+    {
+      id: 'schedule',
+      label: 'Schedule', // Debe coincidir con 'detailed' en app.routes.ts
+      route: 'schedule',
+      traduc: 'Horario',
+      icon: 'clock', // Coincide con subicon del permiso 9
+    },
 
 
   ]);

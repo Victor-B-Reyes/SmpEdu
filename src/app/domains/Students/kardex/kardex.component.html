@@ -1,0 +1,103 @@
+<div class="kardex-container">
+  <div class="kardex-header">
+    <h1>Kárdex Académico</h1>
+    <button class="btn-export" (click)="exportToExcel()">
+      Exportar a Excel
+    </button>
+  </div>
+
+  <!-- Selector de Estudiante -->
+  <div class="student-selector" *ngIf="!studentId">
+    <label for="studentSelect">Seleccionar Estudiante:</label>
+    <select id="studentSelect" (change)="onStudentSelected($event)" class="form-control">
+      <option value="">-- Selecciona un estudiante --</option>
+      <option *ngFor="let student of students" [value]="student.id">
+        {{ student.firstName }} {{ student.lastNameFather }} - {{ student.controlNumber }}
+      </option>
+    </select>
+  </div>
+
+  <!-- Loading State -->
+  <div *ngIf="loading" class="loading">
+    Cargando información...
+  </div>
+
+  <!-- Error State -->
+  <div *ngIf="error" class="alert alert-danger">
+    {{ error }}
+  </div>
+
+  <!-- Stats Cards -->
+  <div *ngIf="selectedStudentId && !loading" class="stats-grid">
+    <div class="stat-card">
+      <h3>Promedio General</h3>
+      <p class="stat-value">{{ gpa.toFixed(2) }}</p>
+    </div>
+    <div class="stat-card">
+      <h3>Créditos Acumulados</h3>
+      <p class="stat-value">{{ creditsAccumulated }}</p>
+    </div>
+    <div class="stat-card">
+      <h3>Materias Aprobadas</h3>
+      <p class="stat-value">{{ subjectStats.Aprobadas }}</p>
+    </div>
+    <div class="stat-card">
+      <h3>Materias Reprobadas</h3>
+      <p class="stat-value text-danger">{{ subjectStats.Reprobadas }}</p>
+    </div>
+    <div class="stat-card">
+      <h3>Materias Pendientes</h3>
+      <p class="stat-value text-warning">{{ subjectStats.Pendientes }}</p>
+    </div>
+    <div class="stat-card">
+      <h3>Total de Materias</h3>
+      <p class="stat-value">{{ subjectStats.Total }}</p>
+    </div>
+  </div>
+
+  <!-- Kardex Table -->
+  <div *ngIf="selectedStudentId && !loading && kardexRecords.length > 0" class="kardex-table-container">
+    <h2>Historial Académico</h2>
+    <table class="kardex-table">
+      <thead>
+        <tr>
+          <th>Período</th>
+          <th>Materia</th>
+          <th>Grado</th>
+          <th>Grupo</th>
+          <th>Parcial 1</th>
+          <th>Parcial 2</th>
+          <th>Parcial 3</th>
+          <th>Calificación Final</th>
+          <th>Status</th>
+          <th>Oportunidad</th>
+          <th>Créditos Ganados</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr *ngFor="let record of kardexRecords" [class]="getStatusClass(record.status)">
+          <td>{{ record.semesterId }}</td>
+          <td>{{ record.subjectId }}</td>
+          <td>{{ record.grade }}</td>
+          <td>{{ record.groupName }}</td>
+          <td>{{ record.partial1 ? record.partial1.toFixed(2) : '-' }}</td>
+          <td>{{ record.partial2 ? record.partial2.toFixed(2) : '-' }}</td>
+          <td>{{ record.partial3 ? record.partial3.toFixed(2) : '-' }}</td>
+          <td><strong>{{ record.finalGrade ? record.finalGrade.toFixed(2) : '-' }}</strong></td>
+          <td>
+            <span [ngClass]="'badge badge-' + (record.status === 'Aprobado' ? 'success' : record.status === 'Reprobado' ? 'danger' : 'warning')">
+              {{ record.status }}
+            </span>
+          </td>
+          <td>{{ record.opportunity }}</td>
+          <td>{{ record.creditsEarned }}</td>
+        </tr>
+      </tbody>
+    </table>
+  </div>
+
+  <!-- No Records -->
+  <div *ngIf="selectedStudentId && !loading && kardexRecords.length === 0" class="no-records">
+    <p>No hay registros académicos para este estudiante</p>
+  </div>
+</div>
