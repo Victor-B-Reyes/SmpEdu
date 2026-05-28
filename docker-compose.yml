@@ -1,0 +1,13 @@
+name: smp-eduControl-frontend
+
+services:
+  smp-eduControl:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: smp-eduControl
+    ports:
+      - "5014:80"
+    environment:
+      - NODE_ENV=production
+    restart: unless-stopped
