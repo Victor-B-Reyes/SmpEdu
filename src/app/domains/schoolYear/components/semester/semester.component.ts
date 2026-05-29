@@ -16,19 +16,20 @@ import { catchError, concat, EMPTY, lastValueFrom, tap, toArray } from 'rxjs';
 import { SchoolYearService } from '../../../../service/schoolYear.service';
 import { SemesterService } from '../../../../service/semester.service';
 import { InegiService } from '../../../../service/inegi.service';
+import LoadSubject from './load-subject.component';
 import Rescripcion from './subModulos/rescripcion.component';
 import  Inscripcion  from './subModulos/inscripcion.component';
 
 @Component({
   selector: 'app-semester',
   standalone: true,
-  imports: [AgGridAngular, Rescripcion, Inscripcion],
+  imports: [AgGridAngular, Rescripcion, Inscripcion, LoadSubject],
   templateUrl: './semester.component.html',
   changeDetection: ChangeDetectionStrategy.OnPush,
 })
 export default class Semester {
   protected readonly selectedUserId = signal<number | null>(null);
-  protected readonly activeSubmodule = signal<'inscripcion' | 'rescripcion' | null>(null);
+  protected readonly activeSubmodule = signal<'inscripcion' | 'rescripcion' | 'loadSubject' | null>(null);
   private gridApi!: GridApi;
   public trackingService = inject(TrackingService);
   public signalsService = inject(SignalsService);
@@ -100,7 +101,7 @@ export default class Semester {
       }
     });
   }
-  public setSelectedUserId(id: number, submodule: 'inscripcion' | 'rescripcion') {
+  public setSelectedUserId(id: number, submodule: 'inscripcion' | 'rescripcion' | 'loadSubject') {
     if (id === 0) {
       alerts.basicAlert('Registro Pendiente', 'Debe guardar los cambios del registro antes de continuar.', 'warning');
       return;
@@ -292,6 +293,21 @@ export default class Semester {
         button.classList.add('bg-indigo-100', 'text-indigo-700', 'px-3', 'py-1', 'rounded-lg', 'text-xs', 'font-bold', 'hover:bg-indigo-200', 'transition-colors');
         button.addEventListener('click', () => {
           if (params.data) this.setSelectedUserId(params.data.id, 'rescripcion');
+        });
+        return button;
+      }
+    },
+    {
+      headerName: "Carga Académica",
+      field: "LoadSubject",
+      width: 150,
+      editable: false,
+      cellRenderer: (params: ICellRendererParams) => {
+        const button = document.createElement('button');
+        button.innerText = 'Carga Académica';
+        button.classList.add('bg-purple-100', 'text-purple-700', 'px-3', 'py-1', 'rounded-lg', 'text-xs', 'font-bold', 'hover:bg-purple-200', 'transition-colors');
+        button.addEventListener('click', () => {
+          if (params.data) this.setSelectedUserId(params.data.id, 'loadSubject');
         });
         return button;
       }

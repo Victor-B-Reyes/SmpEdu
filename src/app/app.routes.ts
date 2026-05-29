@@ -108,7 +108,7 @@ export const routes: Routes = [
             path: 'loadSubject', 
             canActivate: [MasterPermissionsGuard],
             data: { permissions: { master: 'SchoolYear', detailed: 'LoadSubject' } },
-            loadComponent: () => import('./domains/schoolYear/components/semester/semester.component') 
+            loadComponent: () => import('./domains/schoolYear/components/semester/load-subject.component') 
           },
           { 
             path: 'schedule', 

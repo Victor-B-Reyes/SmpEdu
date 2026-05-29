@@ -65,4 +65,9 @@ export class KardexService {
   updateGrade(id: number, academicRecord: AcademicRecord): Observable<AcademicRecord> {
     return this.http.put<AcademicRecord>(`${this.apiUrl}/academicrecord/${id}`, academicRecord);
   }
+
+  createAcademicRecord(record: Omit<AcademicRecord, 'id' | 'createdAt' | 'updatedAt'>): Observable<AcademicRecord> {
+    return this.http.post<AcademicRecord>(`${this.apiUrl}/academicrecord`, record);
+  }
+
 }
