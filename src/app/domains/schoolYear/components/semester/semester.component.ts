@@ -1,4 +1,4 @@
-import { ChangeDetectionStrategy, Component, effect, inject, signal, computed } from '@angular/core';
+import { ChangeDetectionStrategy, Component, effect, inject, signal, computed, ChangeDetectorRef } from '@angular/core';
 import { AgGridAngular } from 'ag-grid-angular';
 import {
   CellDoubleClickedEvent,
@@ -10,6 +10,7 @@ import {
 } from 'ag-grid-enterprise';
 import { TrackingService } from '../../../../service/tracking.service';
 import { SignalsService } from '../../../../service/signals.service';
+import { Router } from '@angular/router';
 import { UsersxpermissionsService } from '../../../../service/usersxpermissions.service';
 import { alerts } from '../../../../helpers/alerts';
 import { catchError, concat, EMPTY, lastValueFrom, tap, toArray } from 'rxjs';
@@ -19,24 +20,27 @@ import { InegiService } from '../../../../service/inegi.service';
 import LoadSubject from './load-subject.component';
 import Rescripcion from './subModulos/rescripcion.component';
 import  Inscripcion  from './subModulos/inscripcion.component';
+import ScheduleComponent from '../schedule/schedule.component';
 
 @Component({
   selector: 'app-semester',
   standalone: true,
-  imports: [AgGridAngular, Rescripcion, Inscripcion, LoadSubject],
+  imports: [AgGridAngular, Rescripcion, Inscripcion, LoadSubject, ScheduleComponent],
   templateUrl: './semester.component.html',
   changeDetection: ChangeDetectionStrategy.OnPush,
 })
 export default class Semester {
   protected readonly selectedUserId = signal<number | null>(null);
-  protected readonly activeSubmodule = signal<'inscripcion' | 'rescripcion' | 'loadSubject' | null>(null);
+  protected readonly activeSubmodule = signal<'inscripcion' | 'rescripcion' | 'loadSubject' | 'schedule' | null>(null);
   private gridApi!: GridApi;
   public trackingService = inject(TrackingService);
   public signalsService = inject(SignalsService);
+  private router = inject(Router);
   public usersxrootService = inject(UsersxpermissionsService);
   public schoolYearService = inject(SchoolYearService);
   public inegiService = inject(InegiService);
   public semesterService = inject(SemesterService);
+  private cdr = inject(ChangeDetectorRef);
 
   // Usamos computed para evitar que el ID se pierda y sea reactivo al sidebar
   protected readonly idCompany = computed(() => this.signalsService.getRootSelectedBySidebar() ?? 0);
@@ -101,7 +105,7 @@ export default class Semester {
       }
     });
   }
-  public setSelectedUserId(id: number, submodule: 'inscripcion' | 'rescripcion' | 'loadSubject') {
+  public setSelectedUserId(id: number, submodule: 'inscripcion' | 'rescripcion' | 'loadSubject' | 'schedule') {
     if (id === 0) {
       alerts.basicAlert('Registro Pendiente', 'Debe guardar los cambios del registro antes de continuar.', 'warning');
       return;
@@ -109,19 +113,26 @@ export default class Semester {
     
     this.selectedUserId.set(id);
     this.activeSubmodule.set(submodule);
-    //console.log('Abriendo submódulo del semestre:', { id, submodule });
+
+    // Forzamos la detección de cambios para que el contenedor aparezca en el DOM
+    // Esto es vital cuando se usa ChangeDetectionStrategy.OnPush
+    this.cdr.detectChanges();
 
     setTimeout(() => {
       document.getElementById('semester-submodule-container')?.scrollIntoView({
         behavior: 'smooth',
         block: 'start',
       });
-    }, 0);
+    }, 100); // Un pequeño delay asegura que el navegador ya renderizó el nuevo contenido
   }
   
   public closeSubmodule() {
     this.activeSubmodule.set(null);
     this.selectedUserId.set(null);
+  }
+
+  public navigateToSchedule(semesterId: number) {
+    this.router.navigate(['/schoolYear/schedule'], { queryParams: { semesterId } });
   }
 
   protected readonly columnDefs = computed<ColDef[]>(() => {
@@ -307,7 +318,7 @@ export default class Semester {
         button.innerText = 'Carga Académica';
         button.classList.add('bg-purple-100', 'text-purple-700', 'px-3', 'py-1', 'rounded-lg', 'text-xs', 'font-bold', 'hover:bg-purple-200', 'transition-colors');
         button.addEventListener('click', () => {
-          if (params.data) this.setSelectedUserId(params.data.id, 'loadSubject');
+          if (params.data) this.setSelectedUserId(params.data.id, 'schedule');
         });
         return button;
       }

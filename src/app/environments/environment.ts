@@ -63,8 +63,8 @@ export const environment = {
   urlNotifications: 'https://endpoints.biapp.com.mx/notifications/api', // 5011 -- NotificationsTelegram
   //urlNotifications: 'http://localhost:5011/api',
 
-  urlEduControl: 'https://endpoints.biapp.com.mx/edu/api', // 5004
-  //urlEduControl          : 'http://localhost:5063/api',
+  //urlEduControl: 'https://endpoints.biapp.com.mx/edu/api', // 5004
+  urlEduControl          : 'http://localhost:5063/api',
 
   urlChatBot: 'https://endpoints.biapp.com.mx/telegram/api',
   //urlChatBot: 'http://localhost:5232/api',

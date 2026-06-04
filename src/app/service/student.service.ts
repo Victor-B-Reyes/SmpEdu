@@ -21,6 +21,13 @@ export class StudentsService {
      //alert(apiUrl)
     return this.http.get(`${environment.urlEduControl}/Students?idCampus=${idCampus}&idCourse=${idCourse}`, { headers: this.trackingService.getHeaders() });
   }
+
+  getStudentsVigentes(idCampus : number, idCourse: number ): Observable<any> {
+    //console.log('Fetching students with idCampus:', idCampus, 'and idCourse:', idCourse);
+    //  const apiUrl = `${environment.urlEduControl}/Students?idCampus=${idroot}`;
+     //alert(apiUrl)
+    return this.http.get(`${environment.urlEduControl}/Students/vigentes?idCampus=${idCampus}&idCourse=${idCourse}`, { headers: this.trackingService.getHeaders() });
+  }
   getListStudents(idCampus : number, idCourse: number , grado: string, grupo: string): Observable<any> {
     //console.log('Fetching students with idCampus:', idCampus, 'and idCourse:', idCourse);
     //  const apiUrl = `${environment.urlEduControl}/Students?idCampus=${idroot}`;

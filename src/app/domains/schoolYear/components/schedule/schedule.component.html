@@ -2,66 +2,164 @@
   <div class="schedule-header">
     <h1>Horarios de Clase</h1>
     <div class="header-actions">
+      <button class="btn-action primary" (click)="toggleCreateForm()">
+        {{ showCreateForm ? 'Cancelar' : 'Nueva Oferta' }}
+      </button>
       <button class="btn-action" (click)="printSchedule()">
-        🖨️ Imprimir
+        Imprimir
       </button>
       <button class="btn-action" (click)="exportScheduleToCalendar()">
-        📅 Exportar Calendario
+        Exportar Calendario
       </button>
     </div>
   </div>
 
-  <!-- Loading State -->
   <div *ngIf="loading" class="loading">
-    Cargando información...
+    Cargando informacion...
   </div>
 
-  <!-- Error State -->
   <div *ngIf="error" class="alert alert-danger">
     {{ error }}
   </div>
 
-  <!-- Filtros -->
-  <div class="filters-section">
+  <div class="filters-section" *ngIf="grades.length > 0">
     <div class="filter-group">
-      <label for="semesterSelect">Semestre:</label>
-      <select id="semesterSelect" (change)="onSemesterSelected($event)" class="form-control">
-        <option value="">-- Selecciona un semestre --</option>
-        <option *ngFor="let semester of semesters" [value]="semester.id">
-          {{ semester.comment }} ({{ semester.startDate | date:'MMM yyyy' }})
-        </option>
-      </select>
-    </div>
-
-    <div class="filter-group" *ngIf="selectedSemesterId && grades.length > 0">
       <label for="gradeSelect">Grado:</label>
-      <select id="gradeSelect" [(ngModel)]="selectedGrade" (change)="onGradeOrGroupSelected()" class="form-control">
-        <option value="">-- Selecciona grado --</option>
-        <option *ngFor="let grade of grades" [value]="grade">
+      <select id="gradeSelect" [(ngModel)]="selectedGrade" (change)="onGradeSelected()" class="form-control">
+        <option [ngValue]="null">-- Todos los grados --</option>
+        <option *ngFor="let grade of grades" [ngValue]="grade">
           Grado {{ grade }}
         </option>
       </select>
     </div>
 
-    <div class="filter-group" *ngIf="selectedSemesterId && groups.length > 0">
+    <div class="filter-group" *ngIf="selectedGrade">
       <label for="groupSelect">Grupo:</label>
       <select id="groupSelect" [(ngModel)]="selectedGroup" (change)="onGradeOrGroupSelected()" class="form-control">
         <option value="">-- Selecciona grupo --</option>
-        <option *ngFor="let group of groups" [value]="group">
-          Grupo {{ group }}
-        </option>
+        <option *ngFor="let g of ['A', 'B', 'C', 'D']" [value]="g">Grupo {{ g }}</option>
       </select>
     </div>
   </div>
+  <!-- Formulario de Creación Rápida (Movido al final) -->
+  <div id="create-offer-section" class="create-offer-section" *ngIf="showCreateForm">
+    <div class="card p-4 mb-4 shadow-sm border-indigo-200 bg-indigo-50/30">
+      <h2 class="text-xl font-bold mb-4 text-indigo-800">Crear Nueva Oferta de Clase</h2>
+      <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+        <div class="form-group">
+          <label>Carrera/Curso:</label>
+          <select [(ngModel)]="newOffer.courseId" class="form-control">
+            <option [value]="null">Selecciona carrera</option>
+            <option *ngFor="let c of courses" [value]="c.id">{{ c.name }}</option>
+          </select>
+        </div>
+        <div class="form-group">
+          <label>Grado:</label>
+          <input type="number" [(ngModel)]="newOffer.grade" class="form-control">
+        </div>
+        <div class="form-group">
+          <label>Grupo:</label>
+          <input type="text" [(ngModel)]="newOffer.groupName" class="form-control" placeholder="Ej: A">
+        </div>
+        <div class="form-group">
+          <label>Capacidad:</label>
+          <input type="number" [(ngModel)]="newOffer.capacity" class="form-control">
+        </div>
+        <div class="md:col-span-3 flex justify-end gap-2 mt-2">
+          <button class="btn-action" (click)="showCreateForm = false">Cerrar</button>
+          <button class="btn-action primary" (click)="saveClassOffer()" 
+            [disabled]="!newOffer.courseId || !newOffer.grade || !newOffer.groupName || !newOffer.capacity">
+            Guardar Oferta
+          </button>
+        </div>
+      </div>
+    </div>
+  </div>
 
-  <!-- Schedule Grid -->
+  <div *ngIf="groupSummaries.length > 0" class="created-groups">
+    <div class="created-groups-header">
+      <h2>Grupos con semestre activo</h2>
+      <p>Selecciona un grupo para cargar su horario.</p>
+    </div>
+
+    <div class="group-chip-list">
+      <button
+        *ngFor="let group of getVisibleGroupSummaries()"
+        type="button"
+        class="group-chip"
+        [class.active]="isSelectedGroupCard(group)"
+        (click)="selectCreatedGroup(group)"
+      >
+        <span class="group-chip-label">{{ group.label }}</span>
+        <span class="group-chip-count">{{ group.semesterComment || ('Semestre ' + group.semesterId) }}</span>
+        <span class="group-chip-count">{{ group.offersCount }} materias</span>
+      </button>
+    </div>
+
+    <div *ngIf="selectedGrade && selectedGroup && !loading && selectedClassOffers.length === 0" class="group-empty-state p-4 rounded-2xl border border-amber-200 bg-amber-50">
+      <div class="mb-4 flex flex-col md:flex-row md:items-center md:justify-between gap-3">
+        <div>
+          <h3 class="text-lg font-bold text-amber-700">Generar materias para {{ selectedGrade }}° grupo {{ selectedGroup }}</h3>
+          <p class="text-sm text-amber-600">No hay ofertas de clase para este grupo. Carga las materias del período y crea los bloques de horario.</p>
+        </div>
+      </div>
+
+      <div *ngIf="newGroupSubjects.length > 0" class="space-y-4">
+        <div *ngFor="let subject of newGroupSubjects; let i = index" class="p-4 rounded-2xl border border-gray-200 bg-white shadow-sm">
+          <div class="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
+            <div>
+              <h4 class="font-bold text-gray-800">{{ subject.name }}</h4>
+              <p class="text-xs text-gray-500">{{ subject.cod || 'Sin código' }}</p>
+            </div>
+          </div>
+
+          <div class="grid grid-cols-1 md:grid-cols-3 gap-3 mt-4">
+            <div>
+              <label class="text-xs text-gray-500">Docente</label>
+              <select class="form-control" [(ngModel)]="subject.teacherId">
+                <option [ngValue]="null">Selecciona docente</option>
+                <option *ngFor="let teacher of teachers" [ngValue]="teacher.id">{{ teacher.name }}</option>
+              </select>
+            </div>
+            <div>
+              <label class="text-xs text-gray-500">Aula</label>
+              <input type="text" class="form-control" [(ngModel)]="subject.classroom" placeholder="Ej: Aula 101" />
+            </div>
+          </div>
+
+          <div class="grid grid-cols-1 md:grid-cols-3 gap-3 mt-4">
+            <div>
+              <label class="text-xs text-gray-500">Día</label>
+              <select class="form-control" [(ngModel)]="subject.dayOfWeek">
+                <option [ngValue]="null">Selecciona día</option>
+                <option *ngFor="let day of dayOfWeekNames; index as idx" [ngValue]="idx">{{ day }}</option>
+              </select>
+            </div>
+            <div>
+              <label class="text-xs text-gray-500">Inicio</label>
+              <input type="time" class="form-control" [(ngModel)]="subject.startTime" />
+            </div>
+            <div>
+              <label class="text-xs text-gray-500">Fin</label>
+              <input type="time" class="form-control" [(ngModel)]="subject.endTime" />
+            </div>
+          </div>
+        </div>
+
+        <div class="flex justify-end">
+          <button class="btn-action primary" (click)="saveGroupSubjects()">Guardar materias y bloques</button>
+        </div>
+      </div>
+    </div>
+  </div>
+<!--
   <div *ngIf="selectedClassOffers.length > 0 && !loading" class="schedule-grid">
     <h2>Horario - Grado {{ selectedGrade }} Grupo {{ selectedGroup }}</h2>
 
     <div class="class-offers">
       <div *ngFor="let offer of selectedClassOffers" class="class-card">
         <div class="class-header">
-          <h3>Materia {{ offer.subjectId }}</h3>
+          <h3>{{ getSubjectName(offer.subjectId) }}</h3>
           <span class="classroom">Aula: {{ offer.classroom }}</span>
         </div>
 
@@ -84,40 +182,293 @@
         </div>
       </div>
     </div>
-  </div>
+  </div>-->
 
-  <!-- Weekly Schedule Table View -->
-  <div *ngIf="selectedClassOffers.length > 0 && !loading" class="weekly-schedule">
-    <h2>Vista Semanal</h2>
-    <table class="schedule-table">
-      <thead>
-        <tr>
-          <th>Hora</th>
-          <th *ngFor="let day of dayOfWeekNames">{{ day }}</th>
-        </tr>
-      </thead>
-      <tbody>
-        <!-- Generar filas de horas -->
-        <tr *ngFor="let hour of [7,8,9,10,11,12,13,14,15,16,17,18]">
-          <td class="time-cell">{{ hour }}:00</td>
-          <td *ngFor="let day of dayOfWeekNames" class="schedule-cell">
-            <!-- Mostrar materia si hay en esa hora/día -->
-            <div *ngFor="let offer of selectedClassOffers">
-              <div *ngFor="let schedule of offer.schedules"
-                   [ngClass]="{'active': schedule.dayOfWeek === dayOfWeekNames.indexOf(day)}">
-                <small *ngIf="schedule.dayOfWeek === dayOfWeekNames.indexOf(day)">
-                  Materia {{ offer.subjectId }}
-                </small>
-              </div>
+  <!-- Vista Semanal y Horario Principal -->
+  <div *ngIf="selectedGroup && !loading" class="animate-in fade-in duration-500">
+    <div class="bg-white rounded-[40px] p-8 shadow-sm border border-slate-100 mb-8">
+      <div class="flex flex-col md:flex-row md:items-center justify-between gap-6 mb-8">
+        <div>
+          <h2 class="text-2xl font-black text-slate-800">Horario Semanal</h2>
+          <p class="text-slate-500 font-medium">Grupo {{ selectedGrade }}°{{ selectedGroup }}</p>
+        </div>
+        <div class="flex gap-3">
+          <button (click)="openGenerateModal()" class="flex items-center gap-2 px-6 py-3 bg-indigo-50 text-indigo-700 font-black rounded-2xl hover:bg-indigo-100 transition-all">
+            <i class="bi bi-magic text-lg"></i>
+            <span>Asistente de Bloques</span>
+          </button>
+        </div>
+      </div>
+
+      <!-- Controles de Configuración de la Tabla -->
+      <div class="grid grid-cols-1 md:grid-cols-3 gap-6 p-6 bg-slate-50 rounded-3xl mb-8">
+        <!-- Bloque de Horarios (Turnos) -->
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-4 md:col-span-2">
+          <div class="flex flex-col gap-2">
+            <label class="text-[10px] font-black uppercase tracking-widest text-slate-400 ml-1">Entrada (Turno 1)</label>
+            <input type="time" class="bg-white border-none rounded-2xl px-4 py-3 font-bold text-slate-700 focus:ring-2 focus:ring-indigo-500 shadow-sm" [(ngModel)]="scheduleStartTime" (ngModelChange)="onScheduleInputChanged()" />
+          </div>
+          <div class="flex flex-col gap-2">
+            <label class="text-[10px] font-black uppercase tracking-widest text-slate-400 ml-1">Salida (Turno 1)</label>
+            <input type="time" class="bg-white border-none rounded-2xl px-4 py-3 font-bold text-slate-700 focus:ring-2 focus:ring-indigo-500 shadow-sm" [(ngModel)]="scheduleEndTime" (ngModelChange)="onScheduleInputChanged()" />
+          </div>
+          <div class="flex flex-col gap-2">
+            <label class="text-[10px] font-black uppercase tracking-widest text-slate-400 ml-1">Entrada (Turno 2)</label>
+            <input type="time" class="bg-white border-none rounded-2xl px-4 py-3 font-bold text-slate-700 focus:ring-2 focus:ring-indigo-500 shadow-sm" [(ngModel)]="scheduleStartTime2" (ngModelChange)="onScheduleInputChanged()" />
+          </div>
+          <div class="flex flex-col gap-2">
+            <label class="text-[10px] font-black uppercase tracking-widest text-slate-400 ml-1">Salida (Turno 2)</label>
+            <input type="time" class="bg-white border-none rounded-2xl px-4 py-3 font-bold text-slate-700 focus:ring-2 focus:ring-indigo-500 shadow-sm" [(ngModel)]="scheduleEndTime2" (ngModelChange)="onScheduleInputChanged()" />
+          </div>
+        </div>
+
+        <!-- Bloque de Intervalo -->
+        <div class="flex flex-col gap-4">
+          <div class="flex flex-col gap-2">
+            <label class="text-[10px] font-black uppercase tracking-widest text-slate-400 ml-1">Intervalo de Clase</label>
+            <select class="bg-white border-none rounded-2xl px-4 py-3 font-bold text-slate-700 focus:ring-2 focus:ring-indigo-500 shadow-sm appearance-none" [(ngModel)]="scheduleIntervalMinutes" (ngModelChange)="onScheduleInputChanged()">
+              <option [ngValue]="null">Selecciona intervalo</option>
+              <option *ngFor="let option of intervalOptions" [ngValue]="option">{{ option }} minutos</option>
+              <option [ngValue]="0">Personalizado...</option>
+            </select>
+          </div>
+          <div class="flex flex-col gap-2" *ngIf="scheduleIntervalMinutes === 0">
+            <label class="text-[10px] font-black uppercase tracking-widest text-slate-400 ml-1">Minutos exactos</label>
+            <input type="number" class="bg-white border-none rounded-2xl px-4 py-3 font-bold text-slate-700 focus:ring-2 focus:ring-indigo-500 shadow-sm" [(ngModel)]="customIntervalMinutes" (ngModelChange)="onScheduleInputChanged()" min="5" />
+          </div>
+        </div>
+
+        <div class="md:col-span-3 border-t border-slate-200 pt-6 flex flex-col md:flex-row md:items-end justify-between gap-6">
+          <div class="flex-1">
+            <label class="text-[10px] font-black uppercase tracking-widest text-slate-400 ml-1 mb-3 block">Días Hábiles</label>
+            <div class="flex flex-wrap gap-2">
+              <label *ngFor="let day of dayOfWeekNames; index as idx" class="cursor-pointer group">
+                <input type="checkbox" class="hidden" [checked]="isDaySelected(idx)" (change)="toggleDaySelection(idx)" />
+                <div class="px-5 py-2.5 rounded-xl font-bold transition-all border-2" [ngClass]="isDaySelected(idx) ? 'bg-indigo-600 border-indigo-600 text-white shadow-md' : 'bg-white border-slate-200 text-slate-400 hover:border-indigo-200 hover:text-indigo-600'">
+                  {{ day }}
+                </div>
+              </label>
             </div>
-          </td>
-        </tr>
-      </tbody>
-    </table>
+          </div>
+          
+          <button (click)="saveScheduleConfiguration()" 
+            class="flex items-center gap-2 px-6 py-3 bg-white text-slate-600 border border-slate-200 font-bold rounded-2xl hover:bg-slate-50 transition-all shadow-sm group-hover:border-indigo-200">
+            <i class="bi bi-save2 text-lg text-indigo-500"></i>
+            <span>Guardar Configuración de Tabla</span>
+          </button>
+        </div>
+      </div>
+
+      <!-- Tabla de Horario -->
+      <ng-container *ngIf="scheduleGenerated; else preGenerateView">
+        <div class="overflow-x-auto rounded-3xl border border-slate-100 shadow-sm">
+          <table class="w-full border-collapse bg-white">
+            <thead>
+              <tr>
+                <th class="p-5 bg-slate-800 text-white font-black uppercase tracking-wider text-[11px] text-left border-b border-slate-700 sticky left-0 z-20 min-w-[150px]">Rango Horario</th>
+                <th *ngFor="let day of visibleScheduleDays()" class="p-5 bg-slate-800 text-white font-black uppercase tracking-wider text-[11px] text-center border-b border-slate-700">
+                  {{ day.name }}
+                </th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr *ngFor="let slot of scheduleSlotObjects; let si = index" class="group/row">
+                <td class="p-4 bg-slate-50 border-b border-r border-slate-100 font-black text-indigo-700 text-sm sticky left-0 z-10 text-center shadow-[2px_0_5px_rgba(0,0,0,0.02)]">
+                  {{ slot.label }} - {{ slot.endLabel }}
+                </td>
+                <td *ngFor="let day of visibleScheduleDays(); let di = index" class="p-1 border-b border-slate-100 relative min-w-[180px] min-h-[100px] hover:bg-slate-50 transition-colors cursor-pointer" (click)="openAssign(di, si, $event)">
+                  <ng-container *ngIf="getOffersForSlot(di, si) as items">
+                    <div *ngIf="items.length === 0" class="h-full flex items-center justify-center opacity-0 group-hover/row:opacity-100 transition-opacity">
+                      <i class="bi bi-plus-circle-dotted text-indigo-200 text-xl"></i>
+                    </div>
+
+                    <!-- Bloque Individual -->
+                    <div *ngIf="items.length === 1" class="m-1 p-3 rounded-2xl bg-white border-l-4 border-indigo-500 shadow-sm flex flex-col gap-1 transition-transform hover:scale-[1.02]">
+                      <span class="text-xs font-black text-slate-800 leading-tight">{{ items[0].label }}</span>
+                      <div class="flex items-center gap-2 mt-1">
+                        <span class="text-[9px] font-black px-1.5 py-0.5 bg-slate-100 text-slate-600 rounded uppercase" *ngIf="items[0].classroom">Aula {{ items[0].classroom }}</span>
+                        <span class="text-[9px] font-bold text-slate-400 truncate" *ngIf="items[0].teacherId">{{ getTeacherName(items[0].teacherId) }}</span>
+                      </div>
+                    </div>
+
+                    <!-- Múltiples Bloques (Conflictos) -->
+                    <div *ngIf="items.length > 1" class="m-1 p-2 rounded-2xl bg-amber-50 border border-amber-200 flex flex-col gap-1">
+                      <div *ngFor="let it of items.slice(0, 2)" class="px-2 py-1 bg-white rounded-lg text-[10px] font-bold text-slate-700 shadow-sm border-l-2 border-amber-500 truncate">
+                        {{ it.label }}
+                      </div>
+                      <div class="text-[9px] font-black text-amber-600 text-center uppercase" *ngIf="items.length > 2">+{{ items.length - 2 }} más</div>
+                    </div>
+                  </ng-container>
+
+                  <!-- Popup de Asignación Rápida (Inline) -->
+                  <div *ngIf="assignmentTarget?.dayIndexVisible === di && assignmentTarget?.slotIndex === si" 
+                       class="absolute left-1/2 -translate-x-1/2 top-0 z-50 p-4 animate-in fade-in zoom-in-95 duration-200 w-[360px]" 
+                       (click)="$event.stopPropagation()">
+                    <div class="bg-white rounded-[2.5rem] shadow-2xl border border-slate-200 p-7 ring-8 ring-indigo-500/5 text-slate-700">
+                      <div class="flex items-center justify-between mb-5 pb-2 border-b border-slate-100">
+                        <h5 class="text-xs font-black text-indigo-600 uppercase tracking-tight">Asignar Clase</h5>
+                        <button (click)="closeAssign()" class="text-slate-400 hover:text-slate-600 transition-colors">
+                          <i class="bi bi-x-lg"></i>
+                        </button>
+                      </div>
+                      
+                      <div class="space-y-4">
+                        <div>
+                          <label class="text-[10px] font-black text-slate-400 uppercase ml-1 mb-1 block">Materia / Oferta</label>
+                          <select class="w-full bg-slate-50 border-none rounded-xl px-4 py-2.5 text-xs font-bold focus:ring-2 focus:ring-indigo-500" [(ngModel)]="assignmentModel.classOfferId">
+                            <option [ngValue]="null">Bloque Manual (Usar nombre)</option>
+                            <option *ngFor="let off of selectedClassOffers" [ngValue]="off.id">{{ getSubjectName(off.subjectId) }}</option>
+                          </select>
+                        </div>
+
+                        <div *ngIf="!assignmentModel.classOfferId">
+                          <label class="text-[10px] font-black text-slate-400 uppercase ml-1 mb-1 block">Nombre del Bloque</label>
+                          <input type="text" class="w-full bg-slate-50 border-none rounded-xl px-4 py-2.5 text-xs font-bold focus:ring-2 focus:ring-indigo-500" [(ngModel)]="newBlockName" placeholder="Ej: Receso">
+                        </div>
+
+                        <div>
+                          <label class="text-[10px] font-black text-slate-400 uppercase ml-1 mb-1 block">Docente</label>
+                          <select class="w-full bg-slate-50 border-none rounded-xl px-4 py-2.5 text-xs font-bold focus:ring-2 focus:ring-indigo-500" [(ngModel)]="assignmentModel.teacherId">
+                            <option [ngValue]="null">Sin docente asignado</option>
+                            <option *ngFor="let t of teachers" [ngValue]="t.id">{{ t.name }}</option>
+                          </select>
+                        </div>
+
+                        <div class="grid grid-cols-2 gap-3">
+                          <div>
+                            <label class="text-[10px] font-black text-slate-400 uppercase ml-1 mb-1 block">Aula</label>
+                            <input type="text" class="w-full bg-slate-50 border-none rounded-xl px-4 py-2.5 text-xs font-bold focus:ring-2 focus:ring-indigo-500" [(ngModel)]="assignmentModel.classroom" placeholder="Ej: 101">
+                          </div>
+                          <div>
+                            <label class="text-[10px] font-black text-slate-400 uppercase ml-1 mb-1 block">Hora Inicio</label>
+                            <input type="time" class="w-full bg-slate-50 border-none rounded-xl px-4 py-2.5 text-xs font-bold" [(ngModel)]="assignmentModel.startTime">
+                          </div>
+                        </div>
+
+                        <div class="grid grid-cols-2 gap-3">
+                          <div>
+                            <label class="text-[10px] font-black text-slate-400 uppercase ml-1 mb-1 block">Hora Fin</label>
+                            <input type="time" class="w-full bg-slate-50 border-none rounded-xl px-4 py-2.5 text-xs font-bold" [(ngModel)]="assignmentModel.endTime">
+                          </div>
+                          <div class="flex flex-col justify-end">
+                            <button (click)="saveAssignment()" [disabled]="assigning" class="w-full py-3 bg-indigo-600 text-white text-[10px] font-black rounded-2xl shadow-lg shadow-indigo-100 active:scale-95 transition-all">
+                            Guardar
+                          </button>
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                </td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+      </ng-container>
+
+      <!-- Vista Previa Vacía -->
+      <ng-template #preGenerateView>
+        <div class="flex flex-col items-center justify-center p-20 bg-slate-50 rounded-[40px] border-4 border-dashed border-slate-200 text-center">
+          <div class="w-24 h-24 bg-white rounded-full flex items-center justify-center shadow-sm mb-6">
+            <i class="bi bi-calendar3 text-4xl text-slate-300"></i>
+          </div>
+          <h3 class="text-xl font-black text-slate-800 mb-2">Configure los parámetros de tiempo</h3>
+          <p class="text-slate-500 font-medium max-w-xs mb-8">Selecciona las horas de entrada, salida y días laborables para generar la vista previa del horario.</p>
+          <div class="flex gap-4">
+             <div class="text-xs px-4 py-2 bg-white rounded-xl border border-slate-200 font-bold text-slate-400 italic">Esperando parámetros...</div>
+          </div>
+        </div>
+      </ng-template>
+    </div>
   </div>
 
-  <!-- No Selection -->
-  <div *ngIf="!selectedSemesterId || (selectedSemesterId && selectedClassOffers.length === 0 && !loading)" class="no-selection">
-    <p>Selecciona un semestre, grado y grupo para ver los horarios</p>
+  <!-- Modal Asistente de Bloques Académicos -->
+  <div *ngIf="showGenerateModal" class="fixed inset-0 z-[110] flex items-center justify-center p-4 bg-slate-900/40 backdrop-blur-md animate-in fade-in duration-300">
+    <div class="bg-white w-full max-w-4xl rounded-[40px] shadow-2xl overflow-hidden animate-in zoom-in-95 duration-300">
+      <!-- Header Modal -->
+      <div class="p-8 pb-4 flex items-center justify-between">
+        <div>
+          <h3 class="text-2xl font-black text-slate-800">Generar Bloques</h3>
+          <p class="text-sm text-slate-500 font-medium">Asigna clases de forma masiva a la tabla</p>
+        </div>
+        <button (click)="closeGenerateModal()" class="w-10 h-10 flex items-center justify-center rounded-2xl bg-slate-100 text-slate-500 hover:bg-slate-200 transition-colors">
+          <i class="bi bi-x-lg"></i>
+        </button>
+      </div>
+
+      <!-- Contenido Modal -->
+      <div class="p-8 space-y-6 max-h-[70vh] overflow-y-auto text-slate-700">
+        <div class="space-y-2">
+          <label class="text-[10px] font-black uppercase tracking-widest text-slate-400 ml-1">Materia / Oferta Académica</label>
+          <select class="w-full bg-slate-50 border-none rounded-2xl px-4 py-3 text-slate-700 font-bold focus:ring-2 focus:ring-indigo-500 shadow-sm" [(ngModel)]="modalSelectedOfferId">
+            <option [ngValue]="null">Crear bloque manual (personalizado)</option>
+            <option *ngFor="let off of selectedClassOffers" [ngValue]="off.id">{{ getSubjectName(off.subjectId) }} {{ off.classroom ? '['+off.classroom+']' : '' }}</option>
+          </select>
+        </div>
+
+        <div class="grid grid-cols-2 gap-4">
+          <div class="space-y-2">
+            <label class="text-[10px] font-black uppercase tracking-widest text-slate-400 ml-1">Docente</label>
+            <select class="w-full bg-slate-50 border-none rounded-2xl px-4 py-3 text-slate-700 font-bold focus:ring-2 focus:ring-indigo-500 shadow-sm" [(ngModel)]="modalSelectedTeacherId">
+              <option [ngValue]="null">Sin docente</option>
+              <option *ngFor="let t of teachers" [ngValue]="t.id">{{ t.name }}</option>
+            </select>
+          </div>
+          <div class="space-y-2">
+            <label class="text-[10px] font-black uppercase tracking-widest text-slate-400 ml-1">Aula / Salón</label>
+            <input type="text" class="w-full bg-slate-50 border-none rounded-2xl px-4 py-3 text-slate-700 font-bold focus:ring-2 focus:ring-indigo-500 shadow-sm" [(ngModel)]="modalClassroom" placeholder="Ej: 101" />
+          </div>
+        </div>
+
+        <!-- Selección de Días y Slots -->
+        <div class="grid grid-cols-2 gap-8 pt-4 border-t border-slate-100">
+          <div>
+            <label class="text-[10px] font-black uppercase tracking-widest text-slate-400 ml-1 mb-4 block">1. Selecciona Días</label>
+            <div class="flex flex-col gap-2">
+              <label *ngFor="let day of dayOfWeekNames; index as idx" class="flex items-center gap-3 p-3 rounded-2xl cursor-pointer transition-colors" [ngClass]="modalSelectedDays.includes(idx) ? 'bg-indigo-50' : 'hover:bg-slate-50'">
+                <input type="checkbox" class="w-5 h-5 rounded-lg border-slate-300 text-indigo-600 focus:ring-indigo-500" [checked]="modalSelectedDays.includes(idx)" (change)="toggleModalDay(idx)" />
+                <span class="text-sm font-bold text-slate-700">{{ day }}</span>
+              </label>
+            </div>
+          </div>
+          <div>
+            <label class="text-[10px] font-black uppercase tracking-widest text-slate-400 ml-1 mb-4 block">2. Selecciona Horarios</label>
+            <div class="space-y-2 max-h-[300px] overflow-auto pr-2 custom-scrollbar">
+              <label *ngFor="let s of scheduleSlotObjects; index as sIdx" class="flex items-center gap-3 p-3 rounded-2xl cursor-pointer transition-colors" [ngClass]="modalSelectedSlots.includes(sIdx) ? 'bg-emerald-50' : 'hover:bg-slate-50'">
+                <input type="checkbox" class="w-5 h-5 rounded-lg border-slate-300 text-emerald-600 focus:ring-emerald-500" [checked]="modalSelectedSlots.includes(sIdx)" (change)="modalSelectedSlots = modalSelectedSlots.includes(sIdx) ? modalSelectedSlots.filter(x=>x!==sIdx) : [...modalSelectedSlots, sIdx]" />
+                <span class="text-sm font-bold text-slate-700">{{ s.label }} - {{ s.endLabel }}</span>
+              </label>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Footer Modal -->
+      <div class="p-8 pt-4 bg-slate-50 flex items-center justify-between">
+        <button (click)="closeGenerateModal()" class="px-6 py-3 font-bold text-slate-500 hover:text-slate-800 transition-colors">Finalizar y Cerrar</button>
+        <button (click)="generateBlocksFromModal()" class="px-8 py-4 bg-indigo-600 text-white font-black rounded-3xl shadow-xl shadow-indigo-100 hover:bg-indigo-700 transition-all active:scale-95">
+          Agregar a la Tabla
+        </button>
+      </div>
+    </div>
   </div>
+
+  <!-- Mensajes de Estado Final -->
+  <div *ngIf="groupSummaries.length === 0 && !loading && !error" class="flex flex-col items-center justify-center p-20 bg-white rounded-[50px] border border-slate-100 text-center shadow-sm">
+    <div class="w-24 h-24 bg-slate-50 rounded-full flex items-center justify-center mb-6">
+       <i class="bi bi-calendar-x text-4xl text-slate-300"></i>
+    </div>
+    <h3 class="text-xl font-black text-slate-800">No hay periodos activos</h3>
+    <p class="text-slate-500 font-medium max-w-sm">No se encontraron grupos asociados a un ciclo escolar vigente para esta compañía.</p>
+  </div>
+
+  <div *ngIf="groupSummaries.length > 0 && selectedClassOffers.length === 0 && !loading && !error" class="flex flex-col items-center justify-center p-20 bg-white rounded-[50px] border border-slate-100 text-center shadow-sm">
+    <div class="w-24 h-24 bg-indigo-50 rounded-full flex items-center justify-center mb-6 text-indigo-600">
+       <i class="bi bi-info-circle text-4xl"></i>
+    </div>
+    <h3 class="text-xl font-black text-slate-800">Selecciona un Grupo</h3>
+    <p class="text-slate-500 font-medium max-w-sm">Haz clic en uno de los grupos arriba para cargar o configurar su horario semanal.</p>
+  </div>
+
+  
 </div>
