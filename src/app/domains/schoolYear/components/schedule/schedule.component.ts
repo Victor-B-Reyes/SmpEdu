@@ -1,4 +1,5 @@
-import { Component, OnInit, inject, effect, signal, computed, ChangeDetectorRef, Input } from '@angular/core';
+import { Component, OnInit, inject, effect, signal, computed, ChangeDetectorRef, Input, NgZone } from '@angular/core';
+import { DomSanitizer, SafeResourceUrl } from '@angular/platform-browser';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { ActivatedRoute } from '@angular/router';
@@ -10,6 +11,11 @@ import { SubjectService } from '../../../../service/subject.service';
 import { CoursesService } from '../../../../service/courses.service';
 import { EmployeesService } from '../../../../service/employees.service';
 import { alerts } from '../../../../helpers/alerts';
+import { KardexService } from '../../../../service/kardex.service';
+import { StudentsService } from '../../../../service/student.service';
+import { SchedulePdfUtil } from './schedule-pdf.util';
+import { StudentsPdfUtil } from '../../../Students/components/students-pdf.util';
+import LoadSubjectComponent from '../semester/load-subject.component';
 
 interface GroupSummary {
   grade: number;
@@ -18,6 +24,7 @@ interface GroupSummary {
   offersCount: number;
   semesterId: number;
   semesterComment?: string;
+  studentCount?: number;
 }
 
 interface WeeklyScheduleBlock {
@@ -34,7 +41,7 @@ interface WeeklyScheduleBlock {
 @Component({
   selector: 'app-schedule',
   standalone: true,
-  imports: [CommonModule, FormsModule],
+  imports: [CommonModule, FormsModule, LoadSubjectComponent],
   templateUrl: './schedule.component.html',
   styleUrls: ['./schedule.component.scss']
 })
@@ -55,6 +62,7 @@ export default class ScheduleComponent implements OnInit {
   error = '';
   
   // Estado para la creación
+  showLoadStudentsModal = signal(false);
   showCreateForm = false;
   courses: any[] = [];
   subjects: any[] = [];
@@ -119,12 +127,23 @@ export default class ScheduleComponent implements OnInit {
   weeklyScheduleBlocks = signal<WeeklyScheduleBlock[]>([]);
   intervalOptions = [30, 50, 60, 90, 120];
 
+  // Estado del Visualizador de PDF
+  showPdfPreview = signal(false);
+  pdfPreviewUrl = signal<SafeResourceUrl | null>(null);
+  private currentPdfDoc: any = null;
+  private currentBlobUrl: string | null = null;
+  pdfFileName = '';
+  private zone = inject(NgZone);
+
+  private sanitizer = inject(DomSanitizer);
+  private studentService = inject(StudentsService);
   private scheduleService = inject(ScheduleService);
   private subjectService = inject(SubjectService);
   private coursesService = inject(CoursesService);
   private employeesService = inject(EmployeesService);
   private semesterService = inject(SemesterService);
   private signalsService = inject(SignalsService);
+  private kardexService = inject(KardexService);
   private activatedRoute = inject(ActivatedRoute);
   private selectedCourseId = computed(() => this.signalsService.getCourseSelectedBySidebar() ?? 0);
 
@@ -191,7 +210,7 @@ export default class ScheduleComponent implements OnInit {
     this.updateScheduleSlots();
 
     // Si viene el idSemester como input (desde el componente padre), usarlo directamente
-    if (this.idSemester && this.idSemester > 0) {
+    if (this.idSemester !== undefined && this.idSemester !== null) {
       this.selectedSemesterId = this.idSemester;
       this.loadClassOffers(this.selectedSemesterId);
       return;
@@ -465,6 +484,7 @@ export default class ScheduleComponent implements OnInit {
         this.classOffers = offers;
         this.grades = [...new Set(offers.map((offer) => offer.grade))].sort((left, right) => left - right);
         this.groupSummaries = this.buildGroupSummaries(offers);
+        this.loadStudentCounts(semesterId);
         console.log("Desde aqui - Resumen de grupos generados:", this.groupSummaries);
         this.groups = this.getAvailableGroups();
         this.loading = false;
@@ -474,6 +494,28 @@ export default class ScheduleComponent implements OnInit {
         this.error = 'Error al cargar ofertas de clase';
         this.loading = false;
       }
+    });
+  }
+
+  loadStudentCounts(semesterId: number): void {
+    this.kardexService.getRecordsBySemester(semesterId).subscribe({
+      next: (res: any) => {
+        const records = Array.isArray(res) ? res : (res?.data || []);
+        const studentMap = new Map<string, Set<number>>();
+
+        records.forEach((rec: any) => {
+          const key = `${rec.grade}-${rec.groupName}`;
+          if (!studentMap.has(key)) studentMap.set(key, new Set());
+          studentMap.get(key)?.add(rec.studentId);
+        });
+
+        this.groupSummaries.forEach(group => {
+          const key = `${group.grade}-${group.groupName}`;
+          group.studentCount = studentMap.get(key)?.size || 0;
+        });
+        this.cdr.markForCheck();
+      },
+      error: (err) => console.error('Error al cargar conteo de alumnos:', err)
     });
   }
 
@@ -1190,12 +1232,198 @@ export default class ScheduleComponent implements OnInit {
     return teacher ? teacher.name : `ID ${teacherId}`;
   }
 
+  loadStudents(): void {
+    this.showLoadStudentsModal.set(true);
+  }
+
   exportScheduleToCalendar(): void {
     console.log('Exportar a calendario');
   }
 
-  printSchedule(): void {
-    window.print();
+  printSchedule() {
+    console.log('🎯 [printSchedule] Iniciando generación de PDF...');
+    console.log('🎯 [printSchedule] Datos:', {
+      semesterId: this.selectedSemesterId,
+      grade: this.selectedGrade,
+      group: this.selectedGroup,
+      visibleDays: this.visibleScheduleDays(),
+      slotsCount: this.scheduleSlotObjects.length
+    });
+    
+    if (!this.selectedGrade || !this.selectedGroup) {
+      console.error('❌ [printSchedule] Faltan datos: grado o grupo');
+      return;
+    }
+
+    try {
+      console.log('📋 [printSchedule] Generando definición PDF...');
+      const pdfDoc = SchedulePdfUtil.generateSchedulePDF(
+        this.getSelectedSemesterName(),
+        this.selectedGrade,
+        this.selectedGroup,
+        this.visibleScheduleDays(),
+        this.scheduleSlotObjects,
+        (di, si) => this.getOffersForSlot(di, si),
+        (id) => this.getTeacherName(id)
+      );
+      console.log('✅ [printSchedule] PDF generado exitosamente:', pdfDoc);
+      
+      this.openPdfPreview(pdfDoc, `Horario_${this.selectedGrade}_${this.selectedGroup}.pdf`);
+    } catch (error) {
+      console.error('❌ [printSchedule] Error al generar PDF:', error);
+    }
+  }
+
+  printStudentList() {
+    console.log('👥 [printStudentList] Iniciando generación de lista de alumnos...');
+    console.log('👥 [printStudentList] Datos:', {
+      semesterId: this.selectedSemesterId,
+      grade: this.selectedGrade,
+      group: this.selectedGroup
+    });
+
+    if (this.selectedSemesterId === null || !this.selectedGrade || !this.selectedGroup) {
+      console.error('❌ [printStudentList] Faltan datos requeridos');
+      return;
+    }
+    
+    const branchId = this.signalsService.getBranchSelectedBySidebar() ?? 0;
+    const courseId = this.selectedCourseId();
+    
+    console.log('👥 [printStudentList] Obteniendo estudiantes con:', {
+      branchId,
+      courseId,
+      grade: this.selectedGrade,
+      group: this.selectedGroup
+    });
+
+    this.studentService.getListStudents(
+      branchId,
+      courseId,
+      this.selectedGrade.toString(),
+      this.selectedGroup
+    ).subscribe({
+      next: (response: any) => {
+        console.log('✅ [printStudentList] Respuesta recibida:', response);
+        const data = Array.isArray(response) ? response : (response?.data || []);
+        console.log('📊 [printStudentList] Estudiantes procesados:', data.length);
+        
+        if (data.length === 0) {
+          console.warn('⚠️ [printStudentList] No hay estudiantes para este grupo');
+          alerts.basicAlert('Sin datos', 'No se encontraron alumnos para este grupo', 'info');
+          return;
+        }
+        
+        console.log('📋 [printStudentList] Generando PDF de estudiantes...');
+        const pdfDoc = StudentsPdfUtil.generateStudentsListPDF(data);
+        console.log('✅ [printStudentList] PDF generado:', pdfDoc);
+        
+        this.openPdfPreview(pdfDoc, `Lista_Alumnos_${this.selectedGrade}_${this.selectedGroup}.pdf`);
+      },
+      error: (err) => {
+        console.error('❌ [printStudentList] Error al obtener lista de alumnos:', err);
+        alerts.basicAlert('Error', 'No se pudo generar la lista de alumnos', 'error');
+      }
+    });
+  }
+
+  private openPdfPreview(pdfDoc: any, fileName: string) {
+    console.log('📂 [openPdfPreview] Iniciando apertura de PDF...');
+    console.log('📂 [openPdfPreview] Tipo de pdfDoc:', pdfDoc?.constructor?.name);
+    console.log('📂 [openPdfPreview] Métodos disponibles:', Object.getOwnPropertyNames(Object.getPrototypeOf(pdfDoc)));
+    
+    this.currentPdfDoc = pdfDoc;
+    this.pdfFileName = fileName;
+    
+    // Mostramos el modal de inmediato
+    console.log('🔓 [openPdfPreview] Abriendo modal...');
+    this.showPdfPreview.set(true);
+    this.pdfPreviewUrl.set(null);
+    this.cdr.markForCheck();
+
+    try {
+      console.log('⏳ [openPdfPreview] Intentando obtener PDF con getBlob()...');
+
+      // Intentamos con getBlob, pero con un wrap de seguridad
+      if (pdfDoc.getBlob && typeof pdfDoc.getBlob === 'function') {
+        pdfDoc.getBlob((blob: Blob) => {
+          console.log('✅ [openPdfPreview] Callback de getBlob() ejecutado');
+          console.log('📊 [openPdfPreview] Blob size:', blob.size, 'bytes');
+            
+          this.zone.run(() => {
+            if (this.currentBlobUrl) {
+              URL.revokeObjectURL(this.currentBlobUrl);
+            }
+
+            const blobUrl = URL.createObjectURL(blob);
+            this.currentBlobUrl = blobUrl;
+            console.log('📋 [openPdfPreview] Blob URL creada');
+            
+            const safeUrl = this.sanitizer.bypassSecurityTrustResourceUrl(blobUrl);
+            
+            this.pdfPreviewUrl.set(safeUrl);
+            this.loading = false;
+            
+            this.cdr.markForCheck();
+            console.log('✅ [openPdfPreview] pdfPreviewUrl seteada y vista actualizada');
+          });
+        });
+      } else {
+        console.error('❌ [openPdfPreview] Método getBlob no disponible');
+        console.log('📝 Intentando métodos alternativos...');
+        
+        // Intentar con método promise-based si existe
+        if (pdfDoc.pdfDocumentPromise) {
+          console.log('⏳ Usando pdfDocumentPromise...');
+          pdfDoc.pdfDocumentPromise.then((pdf: any) => {
+            console.log('✅ pdfDocumentPromise resuelto');
+            if (pdf.getBlob) {
+              pdf.getBlob((blob: Blob) => {
+                const blobUrl = URL.createObjectURL(blob);
+                this.zone.run(() => {
+                  this.pdfPreviewUrl.set(this.sanitizer.bypassSecurityTrustResourceUrl(blobUrl));
+                  this.cdr.markForCheck();
+                });
+              });
+            }
+          });
+        } else {
+          throw new Error('No se encontró método para obtener PDF');
+        }
+      }
+    } catch (err) {
+      console.error('❌ [openPdfPreview] Error crítico:', err);
+      this.closePdfPreview();
+      alerts.basicAlert('Error', 'No se pudo renderizar el PDF. Verifique los datos.', 'error');
+    }
+  }
+
+  downloadPdf() {
+    console.log('⬇️ [downloadPdf] Iniciando descarga...');
+    console.log('⬇️ [downloadPdf] Archivo:', this.pdfFileName);
+    console.log('⬇️ [downloadPdf] pdfDoc disponible:', !!this.currentPdfDoc);
+    
+    if (this.currentPdfDoc) {
+      console.log('⬇️ [downloadPdf] Llamando a download()...');
+      this.currentPdfDoc.download(this.pdfFileName);
+      console.log('✅ [downloadPdf] Download completado');
+      this.closePdfPreview();
+    } else {
+      console.error('❌ [downloadPdf] No hay PDF disponible para descargar');
+    }
+  }
+
+  closePdfPreview() {
+    console.log('❌ [closePdfPreview] Cerrando vista previa...');
+    this.showPdfPreview.set(false);
+    this.pdfPreviewUrl.set(null);
+    this.currentPdfDoc = null;
+    console.log('✅ [closePdfPreview] Vista previa cerrada');
+  }
+
+  getSelectedSemesterName(): string {
+    const semester = this.semesters.find(s => s.id === this.selectedSemesterId);
+    return semester ? semester.comment : (this.selectedSemesterId ? `Semestre ${this.selectedSemesterId}` : '');
   }
 
   private buildGroupSummaries(offers: ClassOffer[]): GroupSummary[] {

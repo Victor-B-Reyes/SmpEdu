@@ -665,7 +665,7 @@ export default class Students implements OnDestroy {
           return;
         }
 
-        StudentsPdfUtil.generateStudentsListPDF(data);
+        StudentsPdfUtil.generateStudentsListPDF(data).download(`Alumnos_${this.printFilterGrade()}_${this.printFilterGroup()}.pdf`);
       },
       error: (error) => {
         console.error('Error en la solicitud de impresion:', error);

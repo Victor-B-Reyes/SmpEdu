@@ -2,7 +2,11 @@ import pdfMake from 'pdfmake/build/pdfmake';
 import pdfFonts from 'pdfmake/build/vfs_fonts';
 import { TDocumentDefinitions } from 'pdfmake/interfaces';
 
-(pdfMake as any).addVirtualFileSystem(pdfFonts);
+// Configuración de fuentes para evitar errores de importación inmutable y de vfs indefinido
+if (pdfFonts) {
+  const vfs = (pdfFonts as any).pdfMake ? (pdfFonts as any).pdfMake.vfs : (pdfFonts as any).vfs || pdfFonts;
+  (pdfMake as any).vfs = vfs;
+}
 
 export class StudentsPdfUtil {
   static generateStudentsListPDF(data: any[]) {
@@ -57,6 +61,6 @@ export class StudentsPdfUtil {
       }
     };
 
-    pdfMake.createPdf(docDefinition).download(`Alumnos_${new Date().getTime()}.pdf`);
+    return pdfMake.createPdf(docDefinition);
   }
 }

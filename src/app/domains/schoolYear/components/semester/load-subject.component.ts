@@ -208,6 +208,18 @@ export default class LoadSubject {
   private scheduleService = inject(ScheduleService);
 
   @Input() idSemester: number | null = null;
+  
+  @Input() set grade(v: string | number | undefined | null) {
+    if (v !== undefined && v !== null) {
+      this.selectedGrade.set(v.toString());
+    }
+  }
+
+  @Input() set group(v: string | undefined | null) {
+    if (v !== undefined && v !== null) {
+      this.selectedGroup.set(v);
+    }
+  }
 
   idCampus = computed(() => this.signalsService.getBranchSelectedBySidebar() ?? 0);
   idCourse = computed(() => this.signalsService.getCourseSelectedBySidebar() ?? 0);

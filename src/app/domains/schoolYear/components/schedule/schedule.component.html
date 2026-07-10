@@ -5,12 +5,6 @@
       <button class="btn-action primary" (click)="toggleCreateForm()">
         {{ showCreateForm ? 'Cancelar' : 'Nueva Oferta' }}
       </button>
-      <button class="btn-action" (click)="printSchedule()">
-        Imprimir
-      </button>
-      <button class="btn-action" (click)="exportScheduleToCalendar()">
-        Exportar Calendario
-      </button>
     </div>
   </div>
 
@@ -43,35 +37,48 @@
   </div>
   <!-- Formulario de Creación Rápida (Movido al final) -->
   <div id="create-offer-section" class="create-offer-section" *ngIf="showCreateForm">
-    <div class="card p-4 mb-4 shadow-sm border-indigo-200 bg-indigo-50/30">
-      <h2 class="text-xl font-bold mb-4 text-indigo-800">Crear Nueva Oferta de Clase</h2>
-      <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
-        <div class="form-group">
-          <label>Carrera/Curso:</label>
-          <select [(ngModel)]="newOffer.courseId" class="form-control">
+    <div class="bg-gradient-to-br from-indigo-50 to-white rounded-[32px] p-8 mb-8 shadow-xl shadow-indigo-100/50 border border-indigo-100 animate-in fade-in zoom-in duration-300">
+      <div class="flex items-center gap-3 mb-6">
+        <div class="w-12 h-12 bg-indigo-600 rounded-2xl flex items-center justify-center shadow-lg shadow-indigo-200">
+          <i class="bi bi-plus-circle text-white text-xl"></i>
+        </div>
+        <h2 class="text-2xl font-black text-slate-800">Nueva Oferta de Clase</h2>
+      </div>
+
+      <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+        <div class="flex flex-col gap-2">
+          <label class="text-[10px] font-black uppercase tracking-widest text-slate-400 ml-1"><i class="bi bi-mortarboard-fill mr-1"></i> Carrera/Curso</label>
+          <select [(ngModel)]="newOffer.courseId" class="w-full bg-white border-none rounded-2xl px-4 py-3.5 font-bold text-slate-700 focus:ring-2 focus:ring-indigo-500 shadow-sm appearance-none cursor-pointer">
             <option [value]="null">Selecciona carrera</option>
             <option *ngFor="let c of courses" [value]="c.id">{{ c.name }}</option>
           </select>
         </div>
-        <div class="form-group">
-          <label>Grado:</label>
-          <input type="number" [(ngModel)]="newOffer.grade" class="form-control">
+
+        <div class="flex flex-col gap-2">
+          <label class="text-[10px] font-black uppercase tracking-widest text-slate-400 ml-1"><i class="bi bi-layers-fill mr-1"></i> Grado</label>
+          <input type="number" [(ngModel)]="newOffer.grade" class="w-full bg-white border-none rounded-2xl px-4 py-3.5 font-bold text-slate-700 focus:ring-2 focus:ring-indigo-500 shadow-sm" placeholder="Ej: 1">
         </div>
-        <div class="form-group">
-          <label>Grupo:</label>
-          <input type="text" [(ngModel)]="newOffer.groupName" class="form-control" placeholder="Ej: A">
+
+        <div class="flex flex-col gap-2">
+          <label class="text-[10px] font-black uppercase tracking-widest text-slate-400 ml-1"><i class="bi bi-hash mr-1"></i> Grupo</label>
+          <input type="text" [(ngModel)]="newOffer.groupName" class="w-full bg-white border-none rounded-2xl px-4 py-3.5 font-bold text-slate-700 focus:ring-2 focus:ring-indigo-500 shadow-sm" placeholder="Ej: A">
         </div>
-        <div class="form-group">
-          <label>Capacidad:</label>
-          <input type="number" [(ngModel)]="newOffer.capacity" class="form-control">
+
+        <div class="flex flex-col gap-2">
+          <label class="text-[10px] font-black uppercase tracking-widest text-slate-400 ml-1"><i class="bi bi-people-fill mr-1"></i> Capacidad</label>
+          <input type="number" [(ngModel)]="newOffer.capacity" class="w-full bg-white border-none rounded-2xl px-4 py-3.5 font-bold text-slate-700 focus:ring-2 focus:ring-indigo-500 shadow-sm" placeholder="Ej: 30">
         </div>
-        <div class="md:col-span-3 flex justify-end gap-2 mt-2">
-          <button class="btn-action" (click)="showCreateForm = false">Cerrar</button>
-          <button class="btn-action primary" (click)="saveClassOffer()" 
-            [disabled]="!newOffer.courseId || !newOffer.grade || !newOffer.groupName || !newOffer.capacity">
-            Guardar Oferta
-          </button>
-        </div>
+      </div>
+
+      <div class="flex justify-end gap-3 mt-8 pt-6 border-t border-indigo-50">
+        <button (click)="showCreateForm = false" class="px-6 py-3 font-bold text-slate-400 hover:text-slate-600 transition-colors">
+          Cancelar
+        </button>
+        <button (click)="saveClassOffer()" [disabled]="!newOffer.courseId || !newOffer.grade || !newOffer.groupName || !newOffer.capacity"
+          class="flex items-center gap-2 px-8 py-3.5 bg-indigo-600 text-white font-black rounded-2xl shadow-lg shadow-indigo-100 hover:bg-indigo-700 transition-all active:scale-95 disabled:opacity-50 disabled:pointer-events-none">
+          <i class="bi bi-check-lg text-lg"></i>
+          <span>Guardar Oferta</span>
+        </button>
       </div>
     </div>
   </div>
@@ -91,8 +98,8 @@
         (click)="selectCreatedGroup(group)"
       >
         <span class="group-chip-label">{{ group.label }}</span>
-        <span class="group-chip-count">{{ group.semesterComment || ('Semestre ' + group.semesterId) }}</span>
-        <span class="group-chip-count">{{ group.offersCount }} materias</span>
+        <span class="group-chip-count" *ngIf="group.semesterComment">{{ group.semesterComment }}</span>
+        <span class="group-chip-count">{{ group.offersCount }} materias • {{ group.studentCount || 0 }} alumnos</span>
       </button>
     </div>
 
@@ -190,9 +197,21 @@
       <div class="flex flex-col md:flex-row md:items-center justify-between gap-6 mb-8">
         <div>
           <h2 class="text-2xl font-black text-slate-800">Horario Semanal</h2>
-          <p class="text-slate-500 font-medium">Grupo {{ selectedGrade }}°{{ selectedGroup }}</p>
+          <p class="text-slate-500 font-medium">Grupo {{ selectedGrade }}°{{ selectedGroup }} — {{ getSelectedSemesterName() }}</p>
         </div>
         <div class="flex gap-3">
+          <button (click)="loadStudents()" class="flex items-center gap-2 px-6 py-3 bg-emerald-50 text-emerald-700 font-black rounded-2xl hover:bg-emerald-100 transition-all shadow-sm">
+            <i class="bi bi-people-fill text-lg"></i>
+            <span>Cargar Alumnos</span>
+          </button>
+          <button (click)="printStudentList()" class="flex items-center gap-2 px-6 py-3 bg-slate-50 text-slate-700 font-black rounded-2xl hover:bg-slate-100 transition-all shadow-sm">
+            <i class="bi bi-printer-fill text-lg"></i>
+            <span>Lista</span>
+          </button>
+          <button (click)="printSchedule()" class="flex items-center gap-2 px-6 py-3 bg-slate-50 text-slate-700 font-black rounded-2xl hover:bg-slate-100 transition-all shadow-sm">
+            <i class="bi bi-printer-fill text-lg"></i>
+            <span>Horario</span>
+          </button>
           <button (click)="openGenerateModal()" class="flex items-center gap-2 px-6 py-3 bg-indigo-50 text-indigo-700 font-black rounded-2xl hover:bg-indigo-100 transition-all">
             <i class="bi bi-magic text-lg"></i>
             <span>Asistente de Bloques</span>
@@ -425,9 +444,9 @@
           <div>
             <label class="text-[10px] font-black uppercase tracking-widest text-slate-400 ml-1 mb-4 block">1. Selecciona Días</label>
             <div class="flex flex-col gap-2">
-              <label *ngFor="let day of dayOfWeekNames; index as idx" class="flex items-center gap-3 p-3 rounded-2xl cursor-pointer transition-colors" [ngClass]="modalSelectedDays.includes(idx) ? 'bg-indigo-50' : 'hover:bg-slate-50'">
-                <input type="checkbox" class="w-5 h-5 rounded-lg border-slate-300 text-indigo-600 focus:ring-indigo-500" [checked]="modalSelectedDays.includes(idx)" (change)="toggleModalDay(idx)" />
-                <span class="text-sm font-bold text-slate-700">{{ day }}</span>
+              <label *ngFor="let day of visibleScheduleDays()" class="flex items-center gap-3 p-3 rounded-2xl cursor-pointer transition-colors" [ngClass]="modalSelectedDays.includes(day.index) ? 'bg-indigo-50' : 'hover:bg-slate-50'">
+                <input type="checkbox" class="w-5 h-5 rounded-lg border-slate-300 text-indigo-600 focus:ring-indigo-500" [checked]="modalSelectedDays.includes(day.index)" (change)="toggleModalDay(day.index)" />
+                <span class="text-sm font-bold text-slate-700">{{ day.name }}</span>
               </label>
             </div>
           </div>
@@ -453,6 +472,29 @@
     </div>
   </div>
 
+  <!-- Modal Cargar Alumnos (LoadSubject) -->
+  <div *ngIf="showLoadStudentsModal()" class="fixed inset-0 z-[120] flex items-center justify-center p-4 bg-slate-900/40 backdrop-blur-md animate-in fade-in duration-300">
+    <div class="bg-white w-full max-w-6xl rounded-[40px] shadow-2xl overflow-hidden animate-in zoom-in-95 duration-300">
+      <div class="p-8 pb-0 flex items-center justify-between">
+        <div>
+          <h3 class="text-2xl font-black text-slate-800">Carga Académica de Alumnos</h3>
+          <p class="text-sm text-slate-500 font-medium">Gestiona los estudiantes para {{ selectedGrade }}°{{ selectedGroup }}</p>
+        </div>
+        <button (click)="showLoadStudentsModal.set(false)" class="w-10 h-10 flex items-center justify-center rounded-2xl bg-slate-100 text-slate-500 hover:bg-slate-200 transition-colors">
+          <i class="bi bi-x-lg"></i>
+        </button>
+      </div>
+
+      <div class="max-h-[75vh] overflow-y-auto">
+        <app-load-subject 
+          [idSemester]="selectedSemesterId" 
+          [grade]="selectedGrade" 
+          [group]="selectedGroup">
+        </app-load-subject>
+      </div>
+    </div>
+  </div>
+
   <!-- Mensajes de Estado Final -->
   <div *ngIf="groupSummaries.length === 0 && !loading && !error" class="flex flex-col items-center justify-center p-20 bg-white rounded-[50px] border border-slate-100 text-center shadow-sm">
     <div class="w-24 h-24 bg-slate-50 rounded-full flex items-center justify-center mb-6">
@@ -470,5 +512,46 @@
     <p class="text-slate-500 font-medium max-w-sm">Haz clic en uno de los grupos arriba para cargar o configurar su horario semanal.</p>
   </div>
 
-  
+  <!-- Modal Visualizador de PDF -->
+  <div *ngIf="showPdfPreview()" class="fixed inset-0 z-[200] flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-sm animate-in fade-in duration-300">
+    <div class="bg-white w-full max-w-5xl h-[90vh] rounded-[40px] shadow-2xl overflow-hidden flex flex-col animate-in zoom-in-95 duration-300">
+      <!-- Header -->
+      <div class="p-6 border-b border-slate-100 flex items-center justify-between bg-slate-50/50">
+        <div class="flex items-center gap-3">
+          <div class="w-10 h-10 bg-indigo-600 rounded-2xl flex items-center justify-center shadow-lg shadow-indigo-100">
+            <i class="bi bi-file-earmark-pdf-fill text-white"></i>
+          </div>
+          <div>
+            <h3 class="font-black text-slate-800">Vista Previa del Documento</h3>
+            <p class="text-xs text-slate-500 font-medium">{{ pdfFileName }}</p>
+          </div>
+        </div>
+        <button (click)="closePdfPreview()" class="w-10 h-10 flex items-center justify-center rounded-2xl bg-white text-slate-400 hover:text-slate-600 border border-slate-100 transition-all">
+          <i class="bi bi-x-lg"></i>
+        </button>
+      </div>
+
+      <!-- Preview Area -->
+      <div class="flex-1 bg-slate-200 relative">
+        <embed *ngIf="pdfPreviewUrl()" [src]="pdfPreviewUrl()" type="application/pdf" class="w-full h-full" />
+        <div *ngIf="!pdfPreviewUrl()" class="absolute inset-0 flex items-center justify-center">
+          <div class="flex flex-col items-center gap-2">
+            <div class="animate-spin rounded-full h-8 w-8 border-b-2 border-indigo-600"></div>
+            <span class="text-sm font-bold text-slate-500">Generando vista previa...</span>
+          </div>
+        </div>
+      </div>
+
+      <!-- Footer -->
+      <div class="p-6 bg-white border-t border-slate-100 flex items-center justify-end gap-3">
+        <button (click)="closePdfPreview()" class="px-6 py-3 font-bold text-slate-500 hover:text-slate-800 transition-colors">
+          Cancelar
+        </button>
+        <button (click)="downloadPdf()" class="flex items-center gap-2 px-8 py-3.5 bg-indigo-600 text-white font-black rounded-2xl shadow-xl shadow-indigo-100 hover:bg-indigo-700 transition-all active:scale-95">
+          <i class="bi bi-download"></i>
+          <span>Descargar PDF</span>
+        </button>
+      </div>
+    </div>
+  </div>
 </div>
